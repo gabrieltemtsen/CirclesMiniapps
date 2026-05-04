@@ -17,6 +17,9 @@
 	let showLogout = $state(false);
 	let chipEl = $state<HTMLElement>();
 
+	let childSafes = $state<string[]>([]);
+	let loadingChildSafes = $state(false);
+
 	function handleWindowClick(e: MouseEvent) {
 		if (showLogout && chipEl && !chipEl.contains(e.target as Node)) {
 			showLogout = false;
@@ -44,6 +47,23 @@
 		const name = wallet.avatarName;
 		if (name) return name.trim().charAt(0).toUpperCase();
 		return wallet.address ? wallet.address.slice(2, 4).toUpperCase() : '?';
+	}
+
+	async function openUserMenu() {
+		showLogout = !showLogout;
+		if (showLogout && wallet.connected && !loadingChildSafes) {
+			loadingChildSafes = true;
+			try {
+				childSafes = await wallet.fetchOwnedChildSafes();
+			} finally {
+				loadingChildSafes = false;
+			}
+		}
+	}
+
+	async function switchToChildSafe(addr: string) {
+		showLogout = false;
+		await wallet.loginAsChildSafe(addr);
 	}
 
 	/** Post a message to a cross-origin source window safely. */
@@ -131,7 +151,7 @@
 		window.addEventListener('online', syncOnlineState);
 		window.addEventListener('offline', syncOnlineState);
 
-		wallet.autoConnect();
+		wallet.autoConnectAndPick();
 
 		fetch('/miniapps.json')
 			.then((r) => r.json())
@@ -182,7 +202,6 @@
 	function goBack() {
 		goto('/miniapps');
 	}
-
 
 	async function handleApprove(): Promise<string> {
 		if (!pendingRequest) return '';
@@ -242,23 +261,72 @@
 			</div>
 			<div class="header-right">
 				{#if wallet.connected}
-					<div class="user-chip" bind:this={chipEl} class:open={showLogout} onclick={() => (showLogout = !showLogout)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showLogout = !showLogout)}>
-						<div class="avatar-img-wrap">
-							{#if wallet.avatarImageUrl}
-								<img class="avatar-img" src={wallet.avatarImageUrl} alt="avatar" />
-							{:else}
-								<span class="avatar-placeholder">{getAvatarInitial()}</span>
-							{/if}
+					<div class="user-chip-wrap">
+						<div
+							class="user-chip"
+							bind:this={chipEl}
+							class:open={showLogout}
+							onclick={openUserMenu}
+							role="button"
+							tabindex="0"
+							onkeydown={(e) => e.key === 'Enter' && openUserMenu()}
+						>
+							<div class="avatar-img-wrap">
+								{#if wallet.avatarImageUrl}
+									<img class="avatar-img" src={wallet.avatarImageUrl} alt="avatar" />
+								{:else}
+									<span class="avatar-placeholder">{getAvatarInitial()}</span>
+								{/if}
+							</div>
+							<span class="user-name">{wallet.avatarName || truncateAddr(wallet.address)}</span>
 						</div>
-						<span class="user-name">{wallet.avatarName || truncateAddr(wallet.address)}</span>
+						{#if wallet.childSafeAddress}
+							<div class="child-safe-badge">
+								<span>Signing as: {truncateAddr(wallet.primaryAddress)}</span>
+								<button class="badge-close" onclick={() => wallet.logoutChildSafe()}>&#215;</button>
+							</div>
+						{/if}
 						{#if showLogout}
-							<button class="logout-btn" onclick={(e) => { e.stopPropagation(); wallet.disconnect(); showLogout = false; }}>Log out</button>
+							<div class="chip-dropdown" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+								{#if wallet.childSafeAddress}
+									<button
+										class="dropdown-action"
+										onclick={() => { wallet.logoutChildSafe(); showLogout = false; }}
+									>
+										Back to primary safe
+									</button>
+									<div class="dropdown-divider"></div>
+								{/if}
+								<button
+									class="dropdown-action logout"
+									onclick={(e) => { e.stopPropagation(); wallet.disconnect(); showLogout = false; }}
+								>
+									Log out
+								</button>
+								{#if childSafes.length > 0}
+									<div class="dropdown-divider"></div>
+									<div class="dropdown-section-label">Switch to child account</div>
+									{#each childSafes as safe (safe)}
+										<button
+											class="dropdown-action child-safe-item"
+											onclick={() => switchToChildSafe(safe)}
+										>
+											{truncateAddr(safe)}
+											{#if safe === wallet.childSafeAddress}
+												<span class="active-dot"></span>
+											{/if}
+										</button>
+									{/each}
+								{:else if loadingChildSafes}
+									<div class="dropdown-loading">Loading safes...</div>
+								{/if}
+							</div>
 						{/if}
 					</div>
 				{:else}
 					<button
 						class="connect-btn"
-						onclick={() => wallet.connectWithPasskey()}
+						onclick={() => wallet.connectAndPick()}
 						disabled={wallet.connecting}
 					>
 						{#if wallet.connecting}
@@ -384,6 +452,15 @@
 		cursor: not-allowed;
 	}
 
+	/* User chip wrap — anchor for the dropdown */
+	.user-chip-wrap {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 4px;
+	}
+
 	/* User chip */
 	.user-chip {
 		display: flex;
@@ -439,22 +516,122 @@
 		white-space: nowrap;
 	}
 
-	.logout-btn {
-		background: none;
-		border: none;
-		border-left: 1px solid var(--line);
-		padding: 2px 0 2px 10px;
-		margin-left: 2px;
-		font-size: 13px;
+	/* Child safe badge */
+	.child-safe-badge {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 6px 2px 8px;
+		border-radius: var(--radius-pill);
+		background: var(--accent-soft, rgba(14, 0, 168, 0.08));
+		border: 1px solid var(--accent-line, rgba(14, 0, 168, 0.18));
+		font-size: 11px;
 		font-weight: 500;
-		color: var(--muted);
-		cursor: pointer;
+		color: var(--accent, #0e00a8);
 		white-space: nowrap;
-		transition: color 0.15s;
 	}
 
-	.logout-btn:hover {
+	.badge-close {
+		background: none;
+		border: none;
+		padding: 0 0 0 2px;
+		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+		color: var(--accent, #0e00a8);
+		opacity: 0.6;
+		transition: opacity 0.15s;
+		display: flex;
+		align-items: center;
+	}
+
+	.badge-close:hover {
+		opacity: 1;
+	}
+
+	/* Chip dropdown */
+	.chip-dropdown {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		min-width: 180px;
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-card, 12px);
+		box-shadow: var(--shadow-card, 0 4px 16px rgba(0, 0, 0, 0.10));
+		z-index: 100;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.dropdown-action {
+		background: none;
+		border: none;
+		width: 100%;
+		text-align: left;
+		padding: 10px 14px;
+		font-size: 13px;
+		font-weight: 500;
 		color: var(--ink);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		transition: background 0.12s;
+	}
+
+	.dropdown-action:hover {
+		background: var(--bg-a);
+	}
+
+	.dropdown-action.logout {
+		color: var(--muted);
+	}
+
+	.dropdown-action.logout:hover {
+		color: var(--ink);
+	}
+
+	.dropdown-action.child-safe-item {
+		font-size: 12px;
+		font-family: monospace;
+		color: var(--muted);
+	}
+
+	.dropdown-action.child-safe-item:hover {
+		color: var(--ink);
+	}
+
+	.dropdown-divider {
+		height: 1px;
+		background: var(--line);
+		margin: 2px 0;
+	}
+
+	.dropdown-section-label {
+		padding: 6px 14px 4px;
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.dropdown-loading {
+		padding: 10px 14px;
+		font-size: 12px;
+		color: var(--muted);
+	}
+
+	.active-dot {
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--accent, #0e00a8);
+		flex-shrink: 0;
+		margin-left: auto;
 	}
 
 	.btn-spinner {
@@ -526,4 +703,7 @@
 		font-size: 15px;
 	}
 
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
 </style>

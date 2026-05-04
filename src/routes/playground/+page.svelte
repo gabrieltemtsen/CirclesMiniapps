@@ -151,7 +151,7 @@
         window.addEventListener("message", handleMessage);
         window.addEventListener("online", syncOnlineState);
         window.addEventListener("offline", syncOnlineState);
-        wallet.autoConnect();
+        wallet.autoConnectAndPick();
 
         const initialUrl = $page.url.searchParams.get("url") ?? "";
         urlInput = initialUrl;
@@ -301,7 +301,7 @@
             {:else}
                 <button
                     class="connect-btn"
-                    onclick={() => wallet.connectWithPasskey()}
+                    onclick={() => wallet.connectAndPick()}
                     disabled={wallet.connecting}
                 >
                     {#if wallet.connecting}

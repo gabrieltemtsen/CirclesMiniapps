@@ -3,6 +3,7 @@
 	import { getAddress } from 'viem';
 	import Disclaimer from '$lib/Disclaimer.svelte';
 	import OfflineNotice from '$lib/OfflineNotice.svelte';
+	import ChildSafePicker from '$lib/ChildSafePicker.svelte';
 	import '../style.css';
 
 	interface Props {
@@ -28,4 +29,5 @@
 
 <Disclaimer />
 <OfflineNotice />
+<ChildSafePicker />
 {@render children()}

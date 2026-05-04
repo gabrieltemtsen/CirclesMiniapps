@@ -123,7 +123,7 @@
 	onMount(() => {
 		window.addEventListener('message', handleMessage);
 
-		wallet.autoConnect();
+		wallet.autoConnectAndPick();
 
 		fetch('/miniapps.json')
 			.then((r) => r.json())
@@ -248,7 +248,7 @@
 				{:else}
 					<button
 						class="connect-btn"
-						onclick={() => wallet.connectWithPasskey()}
+						onclick={() => wallet.connectAndPick()}
 						disabled={wallet.connecting}
 					>
 						{#if wallet.connecting}

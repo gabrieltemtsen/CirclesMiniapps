@@ -59,7 +59,7 @@
 
 	// ----- Wallet auto-connect -----
 	$effect(() => {
-		wallet.autoConnect();
+		wallet.autoConnectAndPick();
 	});
 
 	interface TxEntry {
@@ -415,7 +415,7 @@
 			{#if recipientAddress}
 				{@const recipientProfile = getProfile(recipientAddress)}
 				{#if !wallet.connected}
-					<button class="kudos-btn" onclick={() => wallet.connectWithPasskey()}>
+					<button class="kudos-btn" onclick={() => wallet.connectAndPick()}>
 						<span class="kudos-label">{wallet.connecting ? 'Connecting…' : 'Connect account to send kudos'}</span>
 					</button>
 				{:else if maxFlowLoading}

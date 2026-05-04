@@ -19,6 +19,7 @@ Thumbs.db
 
 # Editor
 .vscode/
+.playwright-cli/
 .idea/
 *.swp
 .claude/

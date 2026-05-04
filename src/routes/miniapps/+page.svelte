@@ -69,7 +69,7 @@
                 // silently ignore fetch errors
             });
 
-        wallet.autoConnect();
+        wallet.autoConnectAndPick();
     });
 </script>
 
@@ -128,7 +128,7 @@
             {:else}
                 <button
                     class="connect-btn"
-                    onclick={() => wallet.connectWithPasskey()}
+                    onclick={() => wallet.connectAndPick()}
                     disabled={wallet.connecting}
                 >
                     {#if wallet.connecting}

@@ -252,7 +252,7 @@
 			await fetchProfiles(addrs);
 			groupImageUrl = getProfile(groupAddr).imageUrl;
 
-			if (showQr && !isMobile) {
+			if (showQr && !isMobile && qrMessage) {
 				const lower = recipientAddress?.toLowerCase() ?? null;
 				const matched = transferEntries.some((entry) => {
 					if (entry.to.toLowerCase() !== orgAddr.toLowerCase()) return false;
@@ -598,7 +598,7 @@
 		justify-content: center;
 		flex-wrap: nowrap;
 		gap: 8px;
-		padding: 12px 12px;
+		padding: 14px 16px;
 		min-width: 0;
 	}
 
@@ -634,35 +634,36 @@
 	}
 
 	.kudos-arrow {
-		color: rgba(255, 255, 255, 0.75);
+		color: #ffffff;
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 	}
 
 	.kudos-label {
-		font-size: 0.88rem;
-		color: rgba(255, 255, 255, 0.85);
+		font-size: 1rem;
+		font-weight: 600;
+		color: #ffffff;
 		flex-shrink: 0;
 		white-space: nowrap;
 	}
 
 	.kudos-avatar {
-		width: 28px;
-		height: 28px;
+		width: 32px;
+		height: 32px;
 		flex-shrink: 0;
 	}
 
 	.kudos-avatar img {
-		width: 28px;
-		height: 28px;
+		width: 32px;
+		height: 32px;
 		border-radius: 50%;
 		object-fit: cover;
 		display: block;
 	}
 
 	.kudos-name {
-		font-size: 0.9rem;
+		font-size: 1rem;
 		font-weight: 700;
 		color: #ffffff;
 		overflow: hidden;
@@ -711,22 +712,22 @@
 		width: 100%;
 		box-sizing: border-box;
 		padding: 8px 12px;
-		border: 1.5px solid rgba(255, 255, 255, 0.3);
+		border: none;
 		border-radius: 8px;
 		font-size: 0.88rem;
-		color: #ffffff;
-		background: rgba(255, 255, 255, 0.15);
+		color: #1a1a1a;
+		background: rgba(255, 255, 255, 0.92);
 		outline: none;
-		transition: border-color 0.15s, background 0.15s;
+		transition: background 0.15s, box-shadow 0.15s;
 	}
 
 	.kudos-msg-input:focus {
-		border-color: rgba(255, 255, 255, 0.6);
-		background: rgba(255, 255, 255, 0.22);
+		background: #ffffff;
+		box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
 	}
 
 	.kudos-msg-input::placeholder {
-		color: rgba(255, 255, 255, 0.55);
+		color: #888;
 	}
 
 	/* ----- Appreciations ----- */
@@ -825,7 +826,7 @@
 	.tx-msg {
 		margin: 4px 0 0;
 		font-size: 0.82rem;
-		color: #666;
+		color: #444;
 		font-style: italic;
 		line-height: 1.3;
 	}
@@ -836,13 +837,13 @@
 	}
 
 	.tx-verb {
-		color: #666;
+		color: #444;
 		font-weight: 400;
 	}
 
 	.tx-amount {
-		font-weight: 400;
-		color: #666;
+		font-weight: 600;
+		color: #222;
 	}
 
 	.has-more {
