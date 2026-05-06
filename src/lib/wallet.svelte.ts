@@ -69,7 +69,7 @@ let childSafeAvatarImageUrl = $state<string>('');
 // Child safe picker state — shown after login when owned child safes are found
 let pickerVisible = $state(false);
 let pickerSafes = $state<string[]>([]);
-let pickerProfiles = $state<Record<string, { name: string; previewImageUrl: string }>>({});
+let pickerProfiles = $state<Record<string, { name: string; previewImageUrl: string; avatarType: string }>>({});
 let pickerResolve: ((addr: string | null) => void) | null = null;
 // Set once the user has resolved the picker this session (picked a child or stuck with primary).
 // Reset on disconnect so the next login shows the picker again.
@@ -338,13 +338,23 @@ async function _openPickerIfNeeded({ force }: { force: boolean }) {
 		pickerCompleted = true;
 		return;
 	}
-	pickerSafes = safes;
-	pickerProfiles = {};
+
+	// Fetch profiles up front so we can filter to human avatars only.
+	// Non-human child safes (organizations, groups, unregistered) are hidden from the picker.
+	const profiles = await fetchProfilesBatch([address, ...safes]);
+	const humanSafes = safes.filter(
+		(s) => profiles[s.toLowerCase()]?.avatarType === 'CrcV2_RegisterHuman'
+	);
+
+	if (humanSafes.length === 0) {
+		// No human child safes to choose from — continue silently with the primary account.
+		pickerCompleted = true;
+		return;
+	}
+
+	pickerSafes = humanSafes;
+	pickerProfiles = profiles;
 	pickerVisible = true;
-	// Fetch Circles profiles for child safes + primary in one batch (best-effort)
-	fetchProfilesBatch([address, ...safes]).then((profiles) => {
-		pickerProfiles = profiles;
-	});
 	// Wait for the user to pick (ChildSafePicker calls resolveChildSafePick)
 	await new Promise<void>((res) => {
 		pickerResolve = (addr) => {
@@ -356,8 +366,8 @@ async function _openPickerIfNeeded({ force }: { force: boolean }) {
 }
 
 /** Batch-fetch Circles profiles. Returns a map from lowercased address to profile fields. */
-async function fetchProfilesBatch(addresses: string[]): Promise<Record<string, { name: string; previewImageUrl: string }>> {
-	const out: Record<string, { name: string; previewImageUrl: string }> = {};
+async function fetchProfilesBatch(addresses: string[]): Promise<Record<string, { name: string; previewImageUrl: string; avatarType: string }>> {
+	const out: Record<string, { name: string; previewImageUrl: string; avatarType: string }> = {};
 	if (!addresses.length) return out;
 	try {
 		const res = await fetch(CIRCLES_RPC_URL, {
@@ -376,7 +386,8 @@ async function fetchProfilesBatch(addresses: string[]): Promise<Record<string, {
 			if (r?.address) {
 				out[r.address.toLowerCase()] = {
 					name: r.name ?? '',
-					previewImageUrl: r.previewImageUrl ?? ''
+					previewImageUrl: r.previewImageUrl ?? '',
+					avatarType: r.avatarType ?? ''
 				};
 			}
 		}
