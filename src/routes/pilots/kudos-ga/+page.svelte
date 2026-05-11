@@ -266,6 +266,11 @@
 			// errors silently suppressed
 		} finally {
 			txLoading = false;
+			// nudge iframe-resizer in case content shrank — its MutationObserver catches growth but not all shrinkage.
+			queueMicrotask(() => {
+				const pi = (window as unknown as { parentIframe?: { size?: () => void } }).parentIframe;
+				pi?.size?.();
+			});
 		}
 	}
 
@@ -292,11 +297,23 @@
 	$effect(() => {
 		if (recipientAddress) fetchProfiles([recipientAddress]);
 	});
+
+	// Load iframe-resizer child script so a parent embedding this page can auto-size the iframe.
+	// Done imperatively (not in <svelte:head>) because SvelteKit's prerender strips raw <script> tags from head.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		if (window.parent === window) return; // not in an iframe — skip
+		if (document.querySelector('script[data-iframe-resizer-child]')) return;
+		const s = document.createElement('script');
+		s.src = 'https://cdn.jsdelivr.net/npm/@iframe-resizer/child@5';
+		s.async = true;
+		s.dataset.iframeResizerChild = 'true';
+		document.head.appendChild(s);
+	});
 </script>
 
 <svelte:head>
 	<title>Appreciations</title>
-	<script src="https://cdn.jsdelivr.net/npm/@iframe-resizer/child@5"></script>
 </svelte:head>
 
 <div class="page">
