@@ -401,9 +401,9 @@
 							<a class="qr-link-btn" href={qrHref} target="_blank" rel="noopener noreferrer">
 								Open on this device instead
 							</a>
-							<!-- svelte-ignore a11y_missing_attribute -->
-							<a data-iframe-height aria-hidden="true"></a>
 						</div>
+						<!-- svelte-ignore a11y_missing_attribute -->
+						<a class="qr-bottom-anchor" data-iframe-height aria-hidden="true"></a>
 					</div>
 				{/if}
 
@@ -910,11 +910,18 @@
 		background: rgba(0, 0, 0, 0.55);
 		backdrop-filter: blur(4px);
 		display: flex;
-		align-items: flex-start;
-		justify-content: center;
-		padding: calc(var(--qr-size) * 0.15) var(--card-pad);
+		flex-direction: column;
+		align-items: center;
+		padding: calc(var(--qr-size) * 0.15) var(--card-pad) calc(var(--qr-size) * 0.18);
 		box-sizing: border-box;
 		z-index: 100;
+	}
+
+	.qr-bottom-anchor {
+		display: block;
+		width: 0;
+		height: 0;
+		margin-top: calc(var(--qr-size) * 0.18);
 	}
 
 	.qr-card {
