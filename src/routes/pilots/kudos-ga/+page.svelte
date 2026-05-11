@@ -98,7 +98,6 @@
 	let qrHref = $state<string>('#');
 	let qrMessage = $state<string>('');
 	let showQr = $state(false);
-	let qrCardEl = $state<HTMLDivElement | null>(null);
 
 	async function openKudos(e: MouseEvent) {
 		if (isMobile) return; // let the <a> navigate normally on mobile
@@ -319,26 +318,6 @@
 		document.head.appendChild(s);
 	});
 
-	// While the QR modal is open, force <body> tall enough to contain it. The modal uses
-	// position: absolute (so it overlays content), which would otherwise leave the iframe
-	// at the un-modal'd height and clip the bottom of the card.
-	$effect(() => {
-		if (typeof document === 'undefined') return;
-		if (!showQr || !qrCardEl) return;
-		const update = () => {
-			if (!qrCardEl) return;
-			// modal top offset + its height + a little breathing room
-			const total = qrCardEl.offsetTop + qrCardEl.offsetHeight + 24;
-			document.body.style.minHeight = `${total}px`;
-		};
-		update();
-		const ro = new ResizeObserver(update);
-		ro.observe(qrCardEl);
-		return () => {
-			ro.disconnect();
-			document.body.style.minHeight = '';
-		};
-	});
 </script>
 
 <svelte:head>
@@ -409,7 +388,7 @@
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div class="qr-overlay" onclick={() => { showQr = false; }}>
-						<div class="qr-card" bind:this={qrCardEl} onclick={(e) => e.stopPropagation()}>
+						<div class="qr-card" onclick={(e) => e.stopPropagation()}>
 							<button class="qr-close" onclick={() => { showQr = false; }}>✕</button>
 							<div class="qr-header">
 								<span class="qr-icon">📱</span>
@@ -422,6 +401,8 @@
 							<a class="qr-link-btn" href={qrHref} target="_blank" rel="noopener noreferrer">
 								Open on this device instead
 							</a>
+							<!-- svelte-ignore a11y_missing_attribute -->
+							<a data-iframe-height aria-hidden="true"></a>
 						</div>
 					</div>
 				{/if}
@@ -542,6 +523,8 @@
 
 	</div>
 </div>
+<!-- svelte-ignore a11y_missing_attribute -->
+<a data-iframe-height aria-hidden="true"></a>
 
 <style>
 	:global(body) {
