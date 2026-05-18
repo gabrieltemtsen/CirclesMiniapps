@@ -8,7 +8,7 @@
 
 	const baseUrl = import.meta.env.VITE_BASE_URL;
 
-	type MiniApp = { slug?: string; name: string; logo: string; url: string; description?: string; tags: string[]; isHidden?: boolean };
+	type MiniApp = { slug?: string; name: string; logo: string; url: string; description?: string; tags: string[]; isHidden?: boolean; category?: string };
 
 	let app: MiniApp | null = $state(null);
 	let notFound = $state(false);
@@ -75,6 +75,7 @@
 			sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation-by-user-activation"
 			onBack={goBack}
 			getAppData={() => $page.url.searchParams.get('data')}
+			enforceTxPolicy={app?.category === 'garage'}
 			{isOffline}
 		>
 			{#snippet offlineState()}

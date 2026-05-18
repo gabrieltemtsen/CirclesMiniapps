@@ -23,7 +23,9 @@
     let chipEl = $state<HTMLElement>();
 
     function visibleApps(): MiniApp[] {
-        return apps.filter((app) => !app.isHidden && app.category !== "admin");
+        return apps.filter(
+            (app) => !app.isHidden && app.category !== "admin",
+        );
     }
 
     function handleWindowClick(e: MouseEvent) {
@@ -312,6 +314,8 @@
         min-width: 0;
         width: 100%;
     }
+
+
 
     .app-tile {
         background: none;

@@ -8,6 +8,7 @@
  */
 
 import { wallet } from './wallet.svelte.ts';
+import { checkTransactions } from './txPolicy.ts';
 
 export type PendingRequest = {
 	kind: 'tx' | 'sign';
@@ -44,11 +45,16 @@ export function postTo(source: MessageEventSource | null, data: any) {
  *   (via $page on the route), so it's injected.
  * - `setPending` and `setPendingSource` mutate the page's reactive state for
  *   transaction/signature approvals.
+ * - `enforceTxPolicy` gates the host-side transaction filter. Pages that host
+ *   untrusted iframes (e.g. Circles Garage) pass `true`; pages hosting
+ *   first-party tools leave it at the default `false`.
  */
 export function createMessageHandler(opts: {
 	getAppData: () => string | null;
 	setPending: (req: PendingRequest | null) => void;
 	setPendingSource: (s: MessageEventSource | null) => void;
+	enforceTxPolicy?: boolean;
+	onPolicyRejection?: (info: { reason: string; transactions: any[] }) => void;
 }) {
 	return function handleMessage(event: MessageEvent) {
 		const { data } = event;
@@ -80,6 +86,17 @@ export function createMessageHandler(opts: {
 				if (!data.transactions || !Array.isArray(data.transactions)) {
 					postTo(event.source, { type: 'tx_rejected', reason: 'No transactions provided', requestId: data.requestId });
 					return;
+				}
+				// Reject before showing the approval popup so the user can't accidentally
+				// rubber-stamp a hostile mini-app call. `primaryAddress` matters even in
+				// child-safe mode because the primary is the actual user-op sender.
+				if (opts.enforceTxPolicy) {
+					const policy = checkTransactions(data.transactions, [wallet.address, wallet.primaryAddress]);
+					if (!policy.allowed) {
+						postTo(event.source, { type: 'tx_rejected', reason: policy.reason, requestId: data.requestId });
+						opts.onPolicyRejection?.({ reason: policy.reason, transactions: data.transactions });
+						return;
+					}
 				}
 				opts.setPendingSource(event.source);
 				opts.setPending({ kind: 'tx', transactions: data.transactions, requestId: data.requestId });

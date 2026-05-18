@@ -3,6 +3,7 @@
 	import AppNavigation from '$lib/AppNavigation.svelte';
 	import { wallet } from '$lib/wallet.svelte.ts';
 	import ApprovalPopup from '$lib/ApprovalPopup.svelte';
+	import RestrictedActionPopup from '$lib/RestrictedActionPopup.svelte';
 	import {
 		truncateAddr,
 		getAvatarInitial as _getAvatarInitial,
@@ -20,6 +21,7 @@
 		title?: string;
 		getAppData?: () => string | null;
 		isOffline?: boolean;
+		enforceTxPolicy?: boolean;
 		offlineState?: Snippet;
 		emptyState?: Snippet;
 		beforeIframe?: Snippet;
@@ -34,6 +36,7 @@
 		title,
 		getAppData,
 		isOffline = false,
+		enforceTxPolicy = false,
 		offlineState,
 		emptyState,
 		beforeIframe
@@ -42,6 +45,7 @@
 	let showLogout = $state(false);
 	let chipEl = $state<HTMLElement>();
 	let pendingRequest: PendingRequest | null = $state(null);
+	let blockedAction: { reason: string; transactions: any[] } | null = $state(null);
 
 	// pendingSource is kept outside $state to avoid Svelte proxying the cross-origin Window object,
 	// which triggers "Blocked a frame from accessing a cross-origin frame".
@@ -72,7 +76,9 @@
 	const handleMessage = createMessageHandler({
 		getAppData: () => getAppData?.() ?? null,
 		setPending: (req) => { pendingRequest = req; },
-		setPendingSource: (s) => { pendingSource = s; }
+		setPendingSource: (s) => { pendingSource = s; },
+		get enforceTxPolicy() { return enforceTxPolicy; },
+		onPolicyRejection: (info) => { blockedAction = info; }
 	});
 
 	const { handleApprove, handleReject } = createApprovalHandlers({
@@ -189,6 +195,14 @@
 		request={pendingRequest}
 		onapprove={handleApprove}
 		onreject={handleReject}
+	/>
+{/if}
+
+{#if blockedAction}
+	<RestrictedActionPopup
+		reason={blockedAction.reason}
+		transactions={blockedAction.transactions}
+		onclose={() => { blockedAction = null; }}
 	/>
 {/if}
 

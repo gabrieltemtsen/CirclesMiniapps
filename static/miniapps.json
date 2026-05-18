@@ -169,7 +169,7 @@
     "slug": "direct-transfer",
     "name": "Direct Transfer",
     "logo": "/app-logos/direct-transfer.png",
-    "url": "/apps/direct-transfer",
+    "url": "https://circles.gnosis.io/apps/direct-transfer",
     "description": "Send CRC you hold directly to others, with auto wrap/unwrap routing across ERC1155 and ERC20 forms.",
     "tags": [
       "payments",
@@ -177,5 +177,17 @@
       "tools"
     ],
     "category": "miniapp"
+  },
+  {
+    "slug": "embedded-miniapp-boilerplate-example",
+    "name": "Embedded Miniapp Boilerplate Example",
+    "logo": "/app-logos/boilerplateminiapp.png",
+    "url": "https://embedded-miniapp-boilerplate.vercel.app/",
+    "description": "Starter template for building embedded Circles mini apps.",
+    "tags": [
+      "demo",
+      "template"
+    ],
+    "category": "garage"
   }
 ]
