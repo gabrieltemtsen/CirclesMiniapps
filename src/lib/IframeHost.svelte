@@ -11,6 +11,20 @@
 		createApprovalHandlers,
 		type PendingRequest
 	} from '$lib/iframeHost.ts';
+	import {
+		trackMiniappIframeLoaded,
+		trackMiniappIframeLoadFailed,
+		trackMiniappRequestedAddress,
+		trackMiniappRequestedTransaction,
+		trackMiniappRequestedSignature,
+		trackMiniappTxApproved,
+		trackMiniappTxRejected,
+		trackMiniappTxPolicyBlocked,
+		trackMiniappSignApproved,
+		trackMiniappSignRejected
+	} from '$lib/analytics';
+
+	type AnalyticsContext = { slug: string; name?: string };
 
 	type Props = {
 		src: string;
@@ -25,6 +39,8 @@
 		offlineState?: Snippet;
 		emptyState?: Snippet;
 		beforeIframe?: Snippet;
+		analytics?: AnalyticsContext;
+		iframeLoadTimeoutMs?: number;
 	};
 
 	let {
@@ -39,7 +55,9 @@
 		enforceTxPolicy = false,
 		offlineState,
 		emptyState,
-		beforeIframe
+		beforeIframe,
+		analytics,
+		iframeLoadTimeoutMs = 15000
 	}: Props = $props();
 
 	let showLogout = $state(false);
@@ -52,6 +70,16 @@
 	let pendingSource: MessageEventSource | null = null;
 
 	let iframeEl: HTMLIFrameElement = $state() as HTMLIFrameElement;
+
+	// Analytics state — kept outside $state, only read inside handlers.
+	const mountedAt = Date.now();
+	let iframeLoaded = false;
+	let loadTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	let pendingShownAt: number | null = null;
+
+	function secondsSinceLoad(): number {
+		return Math.round((Date.now() - mountedAt) / 1000);
+	}
 
 	const getAvatarInitial = () => _getAvatarInitial(wallet.avatarName, wallet.address);
 
@@ -75,23 +103,142 @@
 
 	const handleMessage = createMessageHandler({
 		getAppData: () => getAppData?.() ?? null,
-		setPending: (req) => { pendingRequest = req; },
+		setPending: (req) => {
+			pendingRequest = req;
+			if (req) pendingShownAt = Date.now();
+		},
 		setPendingSource: (s) => { pendingSource = s; },
 		get enforceTxPolicy() { return enforceTxPolicy; },
-		onPolicyRejection: (info) => { blockedAction = info; }
+		onPolicyRejection: (info) => {
+			blockedAction = info;
+			if (analytics) {
+				trackMiniappTxPolicyBlocked({
+					slug: analytics.slug,
+					name: analytics.name,
+					reason: info.reason
+				});
+			}
+		},
+		onAddressRequested: (info) => {
+			if (!analytics) return;
+			trackMiniappRequestedAddress({
+				slug: analytics.slug,
+				name: analytics.name,
+				wallet_connected: info.hadWallet,
+				seconds_since_load: secondsSinceLoad()
+			});
+		},
+		onTransactionRequested: (info) => {
+			if (!analytics) return;
+			trackMiniappRequestedTransaction({
+				slug: analytics.slug,
+				name: analytics.name,
+				tx_count: info.txCount,
+				had_wallet: info.hadWallet,
+				seconds_since_load: secondsSinceLoad()
+			});
+		},
+		onSignatureRequested: (info) => {
+			if (!analytics) return;
+			trackMiniappRequestedSignature({
+				slug: analytics.slug,
+				name: analytics.name,
+				signature_type: info.signatureType
+			});
+		},
+		onTxAutoRejected: (info) => {
+			if (!analytics) return;
+			trackMiniappTxRejected({
+				slug: analytics.slug,
+				name: analytics.name,
+				reject_reason: info.reason
+			});
+		},
+		onSignAutoRejected: (info) => {
+			if (!analytics) return;
+			trackMiniappSignRejected({
+				slug: analytics.slug,
+				name: analytics.name,
+				reject_reason: info.reason
+			});
+		}
 	});
 
-	const { handleApprove, handleReject } = createApprovalHandlers({
+	const baseApprovalHandlers = createApprovalHandlers({
 		getPending: () => pendingRequest,
 		getPendingSource: () => pendingSource,
-		setPending: (req) => { pendingRequest = req; },
+		setPending: (req) => {
+			pendingRequest = req;
+			if (!req) pendingShownAt = null;
+		},
 		setPendingSource: (s) => { pendingSource = s; }
 	});
 
+	async function handleApprove(): Promise<string> {
+		const req = pendingRequest;
+		const startedAt = pendingShownAt;
+		const result = await baseApprovalHandlers.handleApprove();
+		if (analytics && req) {
+			const latency = startedAt ? Date.now() - startedAt : undefined;
+			if (req.kind === 'tx') {
+				trackMiniappTxApproved({
+					slug: analytics.slug,
+					name: analytics.name,
+					tx_count: req.transactions?.length ?? 0,
+					approve_latency_ms: latency
+				});
+			} else {
+				trackMiniappSignApproved({
+					slug: analytics.slug,
+					name: analytics.name,
+					signature_type: req.signatureType ?? 'erc1271'
+				});
+			}
+		}
+		return result;
+	}
+
+	function handleReject() {
+		const req = pendingRequest;
+		baseApprovalHandlers.handleReject();
+		if (analytics && req) {
+			if (req.kind === 'tx') {
+				trackMiniappTxRejected({
+					slug: analytics.slug,
+					name: analytics.name,
+					reject_reason: 'user_rejected'
+				});
+			} else {
+				trackMiniappSignRejected({
+					slug: analytics.slug,
+					name: analytics.name,
+					reject_reason: 'user_rejected'
+				});
+			}
+		}
+	}
+
 	onMount(() => {
 		window.addEventListener('message', handleMessage);
+
+		if (analytics && src) {
+			loadTimeoutId = setTimeout(() => {
+				if (iframeLoaded) return;
+				trackMiniappIframeLoadFailed({
+					slug: analytics.slug,
+					name: analytics.name,
+					time_to_timeout_ms: iframeLoadTimeoutMs,
+					is_offline: !navigator.onLine
+				});
+			}, iframeLoadTimeoutMs);
+		}
+
 		return () => {
 			window.removeEventListener('message', handleMessage);
+			if (loadTimeoutId !== null) {
+				clearTimeout(loadTimeoutId);
+				loadTimeoutId = null;
+			}
 		};
 	});
 
@@ -104,6 +251,20 @@
 	});
 
 	function handleIframeLoad() {
+		if (!iframeLoaded) {
+			iframeLoaded = true;
+			if (loadTimeoutId !== null) {
+				clearTimeout(loadTimeoutId);
+				loadTimeoutId = null;
+			}
+			if (analytics) {
+				trackMiniappIframeLoaded({
+					slug: analytics.slug,
+					name: analytics.name,
+					load_ms: Date.now() - mountedAt
+				});
+			}
+		}
 		if (wallet.connected) {
 			postToIframe({ type: 'wallet_connected', address: wallet.address });
 		}
