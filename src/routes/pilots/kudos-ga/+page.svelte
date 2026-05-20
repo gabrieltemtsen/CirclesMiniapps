@@ -401,7 +401,7 @@
 					onclick={openKudos}
 				>
 					<div class="kudos-top-row">
-						<span class="kudos-label">Donate CRC to</span>
+						<span class="kudos-label">Donate to</span>
 						<div class="kudos-avatar">
 							{#if recipientProfile.imageUrl}
 								<img
@@ -598,7 +598,7 @@
 
 	.card {
 		background: #ffffff;
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
 		max-width: 480px;
 		width: 100%;
@@ -664,7 +664,7 @@
 		box-sizing: border-box;
 		padding: 12px 14px;
 		border: 1.5px solid #ddd;
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		font-size: 0.95rem;
 		color: #1a1a1a;
 		background: #ffffff;
@@ -686,7 +686,7 @@
 		display: block;
 		background: var(--theme-primary, #00af5e);
 		color: #ffffff;
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		padding: 0;
 		text-decoration: none;
 		margin-bottom: 20px;
@@ -794,7 +794,7 @@
 	/* ----- Appreciations ----- */
 	.tx-list {
 		border: 1.5px solid #ddd;
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		overflow: hidden;
 		margin-bottom: 4px;
 	}
@@ -979,7 +979,7 @@
 
 	.qr-card {
 		background: #ffffff;
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		padding: var(--card-pad);
 		display: flex;
 		flex-direction: column;
@@ -1050,7 +1050,7 @@
 
 	.qr-frame {
 		background: #f5f5f5;
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		padding: var(--qr-pad);
 		margin-bottom: var(--gap-md);
 	}
@@ -1070,7 +1070,7 @@
 		padding: calc(var(--qr-size) * 0.045) calc(var(--qr-size) * 0.073);
 		background: var(--theme-primary, #00af5e);
 		border: 1px solid var(--theme-border, #009a52);
-		border-radius: 0.25rem;
+		border-radius: 0.625rem;
 		box-shadow: 0 4px 0 var(--theme-shadow, #007a41), 0 6px 14px rgba(var(--theme-shadow-rgba, 0, 122, 65), 0.25);
 		font-size: calc(var(--qr-size) * 0.06);
 		font-weight: 600;
