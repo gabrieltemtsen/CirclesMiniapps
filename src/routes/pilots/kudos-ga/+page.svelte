@@ -60,9 +60,9 @@
 		v2:
 			'{group} is proud to partner with Circles, a new kind of money that is backed by ' +
 			'the social network of its users. No banks, no permissions required. Every user ' +
-			'can create 1 CRC per hour, unconditionally, which sums up to roughly 100$/year. ' +
+			'can create 1 CRC per hour, unconditionally, which sums up to roughly $100/year. ' +
 			'You can donate your CRC to {group}, along with a message of appreciation. ' +
-			'<strong>Click the button below to get started! No existing account required!</strong>',
+			'<strong>Click the button below to get started. No existing account required!</strong>',
 		test:
 			'TEST TEXT — if you see this, the ?text= URL param is working. The active group ' +
 			'is {group}. Swap to ?text=v2 to see the production intro.'
@@ -429,7 +429,7 @@
 	{#if activeConfig && introText}
 		<header class="intro-block">
 			<img class="intro-logo" src="/circles-token.svg" alt="Circles" />
-			<h1 class="intro-cta">Make a donation from the future!</h1>
+			<h1 class="intro-cta">Make a donation with a new kind of money!</h1>
 			<!-- INTRO_TEXTS values are hardcoded in this file, so {@html} is safe here. -->
 			<p class="intro">{@html introText}</p>
 		</header>
