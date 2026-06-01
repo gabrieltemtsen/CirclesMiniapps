@@ -579,7 +579,7 @@
 					{:else if activeConfig && recentDonationsCount > 0}
 						<span class="social-proof">
 							<span class="social-proof-count">{recentDonationsCount}</span>
-							{recentDonationsCount === 1 ? 'donation' : 'donations'} in the last {SOCIAL_PROOF_WINDOW_DAYS} days
+							{recentDonationsCount === 1 ? 'recent donation' : 'recent donations'}
 						</span>
 					{/if}
 				</div>
@@ -804,14 +804,19 @@
 
 	/* ----- Social proof counter (inline in the refresh-bar) ----- */
 	.social-proof {
-		color: #4a4a4a;
-		font-weight: 500;
+		display: inline-flex;
+		align-items: baseline;
+		gap: 6px;
+		color: #1a1a1a;
+		font-weight: 600;
+		font-size: 1rem;
 	}
 
 	.social-proof-count {
-		font-weight: 700;
+		font-size: 1.6rem;
+		font-weight: 800;
+		line-height: 1;
 		color: var(--theme-primary, #38318b);
-		margin-right: 4px;
 	}
 
 	.kudos-msg-input {
