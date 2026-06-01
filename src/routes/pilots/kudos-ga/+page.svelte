@@ -262,7 +262,8 @@
 	// Counts ALL valid donations to the group org, ignoring the `?address=` filter
 	// (we want a group-wide number, not just kudos for one recipient).
 	// Recomputes whenever transferEntries refreshes (every 5s via loadHistory).
-	const SOCIAL_PROOF_WINDOW_SEC = 7 * 24 * 60 * 60;
+	const SOCIAL_PROOF_WINDOW_DAYS = 14;
+	const SOCIAL_PROOF_WINDOW_SEC = SOCIAL_PROOF_WINDOW_DAYS * 24 * 60 * 60;
 	const recentDonationsCount = $derived.by((): number => {
 		const cutoff = Math.floor(Date.now() / 1000) - SOCIAL_PROOF_WINDOW_SEC;
 		let n = 0;
@@ -570,16 +571,17 @@
 				{/if}
 			{/if}
 
-			{#if activeConfig && recentDonationsCount > 0}
-				<p class="social-proof">
-					<span class="social-proof-count">{recentDonationsCount}</span>
-					{recentDonationsCount === 1 ? 'donation' : 'donations'} in the last 7 days
-				</p>
-			{/if}
 			<div class="refresh-bar">
-				<div class="loading-state" class:invisible={!txLoading || !txManualRefresh}>
-					<span class="spinner"></span>
-					Loading…
+				<div class="bar-status">
+					{#if txLoading && txManualRefresh}
+						<span class="spinner"></span>
+						<span>Loading…</span>
+					{:else if activeConfig && recentDonationsCount > 0}
+						<span class="social-proof">
+							<span class="social-proof-count">{recentDonationsCount}</span>
+							{recentDonationsCount === 1 ? 'donation' : 'donations'} in the last {SOCIAL_PROOF_WINDOW_DAYS} days
+						</span>
+					{/if}
 				</div>
 				<button class="btn-refresh" onclick={() => loadHistory(ORG_ADDRESS, GROUP_ADDRESS, true)} disabled={txLoading && txManualRefresh}>
 					↻ Refresh
@@ -760,17 +762,16 @@
 		}
 	}
 
-	.loading-state {
+	/* Status slot inside .refresh-bar — holds either the loading spinner+text
+	   or the social-proof counter. Sits left, refresh button sits right. */
+	.bar-status {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		color: #7d7d7d;
 		font-size: 0.85rem;
 		flex: 1;
-	}
-
-	.invisible {
-		visibility: hidden;
+		min-width: 0;
 	}
 
 	.spinner {
@@ -801,17 +802,14 @@
 		margin-top: 14px;
 	}
 
-	/* ----- Social proof counter above the feed ----- */
+	/* ----- Social proof counter (inline in the refresh-bar) ----- */
 	.social-proof {
-		margin: 24px 0 8px;
-		font-size: 0.9rem;
-		font-weight: 500;
 		color: #4a4a4a;
-		text-align: center;
+		font-weight: 500;
 	}
 
 	.social-proof-count {
-		font-weight: 800;
+		font-weight: 700;
 		color: var(--theme-primary, #38318b);
 		margin-right: 4px;
 	}
