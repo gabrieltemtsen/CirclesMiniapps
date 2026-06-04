@@ -258,24 +258,25 @@
 		return pairs;
 	});
 
-	// ----- Social proof: total donations to the group in the last N days -----
-	// Counts ALL valid donations to the group org, ignoring the `?address=` filter
-	// (we want a group-wide number, not just kudos for one recipient).
-	// Recomputes whenever transferEntries refreshes (every 5s via loadHistory).
-	const SOCIAL_PROOF_WINDOW_DAYS = 14;
-	const SOCIAL_PROOF_WINDOW_SEC = SOCIAL_PROOF_WINDOW_DAYS * 24 * 60 * 60;
-	const recentDonationsCount = $derived.by((): number => {
-		const cutoff = Math.floor(Date.now() / 1000) - SOCIAL_PROOF_WINDOW_SEC;
-		let n = 0;
-		for (const entry of transferEntries) {
-			if (entry.to.toLowerCase() !== orgLower) continue;
-			if (HIDDEN_TX_HASHES.has(entry.transactionHash.toLowerCase())) continue;
-			if (!decodeRecipient(entry.data)) continue;
-			if (entry.timestamp < cutoff) continue;
-			n++;
-		}
-		return n;
-	});
+	// ----- Social proof: donations dedicated to the active recipient -----
+	// Same scope as the feed: when `?address=` is set, count only donations whose
+	// encoded recipient matches that address; otherwise count all group donations.
+	// Deriving from kudosPairs guarantees the counter and the feed can never drift.
+	// No time window for now — while volume is small the cumulative figure is more
+	// compelling than a 7/14-day slice. Revisit when numbers get bigger.
+	const recentDonationsCount = $derived(kudosPairs.length);
+
+	// ----- Feed display cap -----
+	// We render at most this many rows so the iframe doesn't grow unboundedly on
+	// the embedder's page. The counter above still shows the true total, and an
+	// "And more…" footer makes the truncation explicit. Bump if the embedder
+	// asks for a longer feed.
+	const FEED_DISPLAY_LIMIT = 10;
+	const kudosPairsVisible = $derived(kudosPairs.slice(0, FEED_DISPLAY_LIMIT));
+	// `>=` instead of `>` so the "And more…" footer renders whenever the feed is
+	// at the cap — even if the local list happens to land on exactly 10. Treats
+	// the feed as a window onto the history rather than a definitive list.
+	const hasMoreLocal = $derived(kudosPairs.length >= FEED_DISPLAY_LIMIT);
 
 	// ----- Helpers -----
 	function truncate(addr: string): string {
@@ -583,7 +584,7 @@
 
 			{#if kudosPairs.length > 0}
 				<div class="tx-list">
-					{#each kudosPairs as tx, i (tx.transactionHash)}
+					{#each kudosPairsVisible as tx, i (tx.transactionHash)}
 						{@const senderProfile = getProfile(tx.sender)}
 						{@const recipientProfile = getProfile(tx.recipient)}
 						<div class="tx-row {i % 2 === 0 ? 'row-even' : 'row-odd'}">
@@ -645,8 +646,8 @@
 					{/each}
 				</div>
 
-				{#if hasMore}
-					<p class="has-more">More appreciations available — showing most recent batch.</p>
+				{#if hasMoreLocal || hasMore}
+					<p class="has-more">And more…</p>
 				{/if}
 			{/if}
 
