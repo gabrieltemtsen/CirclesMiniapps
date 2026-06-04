@@ -258,22 +258,13 @@
 		return pairs;
 	});
 
-	// ----- Social proof: total donations to the group -----
-	// Counts ALL valid donations to the group org, ignoring the `?address=` filter
-	// (we want a group-wide number, not just kudos for one recipient).
-	// No time window — while volume is small we want the cumulative figure as the
-	// social proof; once it gets big enough, revisit by re-introducing a window.
-	// Recomputes whenever transferEntries refreshes (every 5s via loadHistory).
-	const recentDonationsCount = $derived.by((): number => {
-		let n = 0;
-		for (const entry of transferEntries) {
-			if (entry.to.toLowerCase() !== orgLower) continue;
-			if (HIDDEN_TX_HASHES.has(entry.transactionHash.toLowerCase())) continue;
-			if (!decodeRecipient(entry.data)) continue;
-			n++;
-		}
-		return n;
-	});
+	// ----- Social proof: donations dedicated to the active recipient -----
+	// Same scope as the feed: when `?address=` is set, count only donations whose
+	// encoded recipient matches that address; otherwise count all group donations.
+	// Deriving from kudosPairs guarantees the counter and the feed can never drift.
+	// No time window for now — while volume is small the cumulative figure is more
+	// compelling than a 7/14-day slice. Revisit when numbers get bigger.
+	const recentDonationsCount = $derived(kudosPairs.length);
 
 	// ----- Helpers -----
 	function truncate(addr: string): string {
