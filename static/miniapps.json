@@ -246,5 +246,14 @@
     "tags": ["internal"],
     "category": "miniapp",
     "isHidden": true
+  },
+  {
+    "slug": "daily-chess-duel",
+    "name": "Daily Chess Duel",
+    "logo": "/app-logos/daily-chess-duel.png",
+    "url": "https://dailychess-five.vercel.app/",
+    "description": "Solve the daily chess puzzle as fast as you can — pay to enter in Circles, fastest solve wins the daily pot.",
+    "tags": ["game", "chess"],
+    "category": "garage"
   }
 ]
