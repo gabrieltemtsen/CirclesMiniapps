@@ -11,7 +11,7 @@ import { wallet } from './wallet.svelte.ts';
 import { checkTransactions } from './txPolicy.ts';
 
 export type PendingRequest = {
-	kind: 'tx' | 'sign';
+	kind: 'tx' | 'sign' | 'auth';
 	transactions?: any[];
 	message?: string;
 	signatureType?: 'erc1271' | 'raw';
@@ -60,6 +60,7 @@ export function createMessageHandler(opts: {
 	onSignatureRequested?: (info: { signatureType: 'erc1271' | 'raw' }) => void;
 	onTxAutoRejected?: (info: { reason: 'no_wallet' | 'invalid_data' }) => void;
 	onSignAutoRejected?: (info: { reason: 'no_wallet' | 'invalid_data' }) => void;
+	onCreateAccountRequested?: (info: { hadWallet: boolean }) => void;
 }) {
 	return function handleMessage(event: MessageEvent) {
 		const { data } = event;
@@ -136,6 +137,25 @@ export function createMessageHandler(opts: {
 					signatureType,
 					requestId: data.requestId
 				});
+				return;
+			}
+
+			case 'request_create_account': {
+				const hadWallet = wallet.connected;
+				opts.onCreateAccountRequested?.({ hadWallet });
+				// Already signed in — resolve immediately with the current account.
+				if (hadWallet) {
+					postTo(event.source, {
+						type: 'auth_success',
+						address: wallet.address,
+						requestId: data.requestId
+					});
+					return;
+				}
+				// Otherwise open the host's create-account popup (handled by the host
+				// page via the 'auth' pending request) and resolve when it closes.
+				opts.setPendingSource(event.source);
+				opts.setPending({ kind: 'auth', requestId: data.requestId });
 				return;
 			}
 		}

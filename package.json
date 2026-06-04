@@ -20,6 +20,7 @@
     "@aboutcircles/sdk-transfers": "^0.1.27",
     "@aboutcircles/sdk-utils": "^0.1.26",
     "@cometh/connect-sdk-4337": "^1.0.24",
+    "@farcaster/miniapp-sdk": "^0.3.0",
     "@selfxyz/sdk-common": "^1.0.0",
     "mixpanel-browser": "^2.79.0",
     "qrcode": "^1.5.4",
