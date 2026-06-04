@@ -258,20 +258,18 @@
 		return pairs;
 	});
 
-	// ----- Social proof: total donations to the group in the last N days -----
+	// ----- Social proof: total donations to the group -----
 	// Counts ALL valid donations to the group org, ignoring the `?address=` filter
 	// (we want a group-wide number, not just kudos for one recipient).
+	// No time window — while volume is small we want the cumulative figure as the
+	// social proof; once it gets big enough, revisit by re-introducing a window.
 	// Recomputes whenever transferEntries refreshes (every 5s via loadHistory).
-	const SOCIAL_PROOF_WINDOW_DAYS = 14;
-	const SOCIAL_PROOF_WINDOW_SEC = SOCIAL_PROOF_WINDOW_DAYS * 24 * 60 * 60;
 	const recentDonationsCount = $derived.by((): number => {
-		const cutoff = Math.floor(Date.now() / 1000) - SOCIAL_PROOF_WINDOW_SEC;
 		let n = 0;
 		for (const entry of transferEntries) {
 			if (entry.to.toLowerCase() !== orgLower) continue;
 			if (HIDDEN_TX_HASHES.has(entry.transactionHash.toLowerCase())) continue;
 			if (!decodeRecipient(entry.data)) continue;
-			if (entry.timestamp < cutoff) continue;
 			n++;
 		}
 		return n;
