@@ -273,7 +273,10 @@
 	// asks for a longer feed.
 	const FEED_DISPLAY_LIMIT = 10;
 	const kudosPairsVisible = $derived(kudosPairs.slice(0, FEED_DISPLAY_LIMIT));
-	const hasMoreLocal = $derived(kudosPairs.length > FEED_DISPLAY_LIMIT);
+	// `>=` instead of `>` so the "And more…" footer renders whenever the feed is
+	// at the cap — even if the local list happens to land on exactly 10. Treats
+	// the feed as a window onto the history rather than a definitive list.
+	const hasMoreLocal = $derived(kudosPairs.length >= FEED_DISPLAY_LIMIT);
 
 	// ----- Helpers -----
 	function truncate(addr: string): string {
