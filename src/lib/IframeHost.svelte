@@ -4,6 +4,7 @@
 	import { wallet } from '$lib/wallet.svelte.ts';
 	import ApprovalPopup from '$lib/ApprovalPopup.svelte';
 	import RestrictedActionPopup from '$lib/RestrictedActionPopup.svelte';
+	import AuthPopup from '$lib/AuthPopup.svelte';
 	import {
 		truncateAddr,
 		getAvatarInitial as _getAvatarInitial,
@@ -66,6 +67,29 @@
 	let chipEl = $state<HTMLElement>();
 	let pendingRequest: PendingRequest | null = $state(null);
 	let blockedAction: { reason: string; transactions: any[] } | null = $state(null);
+
+	// Sign-in errors are shown as a brief, non-blocking toast in the bottom-right
+	// corner (not a persistent banner). Watch the wallet's connectionError and
+	// surface it transiently, then auto-dismiss.
+	let errorToast = $state<string | null>(null);
+	$effect(() => {
+		const err = wallet.connectionError;
+		if (err && !wallet.connected) {
+			errorToast = err;
+			const t = setTimeout(() => (errorToast = null), 5000);
+			return () => clearTimeout(t);
+		}
+	});
+
+	// Attribution tag for account creation triggered from this miniapp: the
+	// loaded iframe's origin (trusted — derived from `src`, not miniapp-supplied).
+	const appOrigin = $derived.by(() => {
+		try {
+			return new URL(src).origin;
+		} catch {
+			return src || 'direct';
+		}
+	});
 
 	// pendingSource is kept outside $state to avoid Svelte proxying the cross-origin Window object,
 	// which triggers "Blocked a frame from accessing a cross-origin frame".
@@ -223,6 +247,22 @@
 		}
 	}
 
+	// Resolve a miniapp-initiated 'request_create_account' when the AuthPopup
+	// closes: success if the user is now connected, rejected otherwise.
+	function handleAuthClose() {
+		const req = pendingRequest;
+		if (req?.kind === 'auth') {
+			if (wallet.connected) {
+				postToIframe({ type: 'auth_success', address: wallet.address, requestId: req.requestId });
+			} else {
+				postToIframe({ type: 'auth_rejected', reason: 'User cancelled', requestId: req.requestId });
+			}
+		}
+		pendingRequest = null;
+		pendingShownAt = null;
+		pendingSource = null;
+	}
+
 	function syncFullscreenState() {
 		isFullscreen = !!document.fullscreenElement || pseudoFullscreen;
 	}
@@ -364,10 +404,10 @@
 	</div>
 </div>
 
-{#if !wallet.connected && wallet.connectionError}
-	<div class="connection-error" role="alert">
-		<span>Sign-in failed: {wallet.connectionError}</span>
-		<button class="connection-error-retry" onclick={() => wallet.connectAndPick()}>Retry</button>
+{#if errorToast}
+	<div class="error-toast" role="status">
+		<span class="error-toast-dot"></span>
+		<span>{errorToast}</span>
 	</div>
 {/if}
 
@@ -406,12 +446,16 @@
 	{/if}
 </div>
 
-{#if pendingRequest}
+{#if pendingRequest && pendingRequest.kind !== 'auth'}
 	<ApprovalPopup
 		request={pendingRequest}
 		onapprove={handleApprove}
 		onreject={handleReject}
 	/>
+{/if}
+
+{#if pendingRequest?.kind === 'auth'}
+	<AuthPopup mode="signup" app={appOrigin} onclose={handleAuthClose} />
 {/if}
 
 {#if blockedAction}
@@ -431,34 +475,43 @@
 		color: var(--ink);
 	}
 
-	.connection-error {
+	/* Transient sign-in error toast, bottom-right. */
+	.error-toast {
+		position: fixed;
+		right: 16px;
+		bottom: 16px;
+		z-index: 10000;
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 8px 12px;
-		margin: 0 0 12px;
+		gap: 9px;
+		max-width: 340px;
+		padding: 11px 14px;
 		font-size: 13px;
-		background: rgba(220, 38, 38, 0.08);
-		border: 1px solid rgba(220, 38, 38, 0.25);
-		border-radius: var(--radius-sm, 8px);
-		color: #b91c1c;
+		line-height: 1.35;
+		color: #fff;
+		background: rgba(20, 22, 40, 0.94);
+		border-radius: 12px;
+		box-shadow: 0 8px 28px rgba(6, 10, 64, 0.28);
+		animation: toast-in 0.2s ease-out;
 	}
 
-	.connection-error-retry {
-		background: none;
-		border: 1px solid rgba(185, 28, 28, 0.4);
-		border-radius: var(--radius-pill);
-		padding: 3px 12px;
-		font-size: 12px;
-		font-weight: 600;
-		color: #b91c1c;
-		cursor: pointer;
-		transition: background 0.12s;
+	.error-toast-dot {
+		flex: none;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #ff6b6b;
 	}
 
-	.connection-error-retry:hover {
-		background: rgba(185, 28, 28, 0.12);
+	@keyframes toast-in {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	.iframe-card {

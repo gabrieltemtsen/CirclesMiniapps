@@ -3,7 +3,10 @@
     import { goto } from "$app/navigation";
     import AppNavigation from "$lib/AppNavigation.svelte";
     import { wallet } from "$lib/wallet.svelte";
+    import AuthPopup from "$lib/AuthPopup.svelte";
     import { trackMiniappClicked } from "$lib/analytics";
+
+    let authMode = $state<"login" | "signup" | null>(null);
 
     const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -140,21 +143,18 @@
                     {/if}
                 </div>
             {:else}
-                <button
-                    class="connect-btn"
-                    onclick={() => wallet.connectAndPick()}
-                    disabled={wallet.connecting}
-                >
-                    {#if wallet.connecting}
-                        <span class="btn-spinner"></span>
-                        Connecting...
-                    {:else}
-                        Sign in
-                    {/if}
-                </button>
+                <div class="auth-actions">
+                    <button class="connect-btn" onclick={() => (authMode = "login")}>
+                        Log in
+                    </button>
+                </div>
             {/if}
         </div>
     </div>
+
+    {#if authMode}
+        <AuthPopup mode={authMode} onclose={() => (authMode = null)} />
+    {/if}
 
     <div class="list-scroll">
         <div class="app-grid">
@@ -529,5 +529,16 @@
         overflow-y: auto;
         min-height: 0;
         padding: 0 4px;
+    }
+
+    .auth-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .connect-btn.outline {
+        background: transparent;
+        color: var(--accent);
+        border: 2px solid var(--accent);
     }
 </style>
