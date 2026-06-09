@@ -54,6 +54,11 @@
 	let boostError = $state('');
 	let boostDone = $state(0); // whole dAMS converted in the last run (for the toast)
 
+	// Signup bonus: collect the 48-CRC welcome bonus as dAMS (one tap).
+	let bonusPhase = $state<'idle' | 'offer' | 'collecting'>('idle');
+	let bonusAmount = $state(0);
+	let bonusError = $state('');
+
 	let membershipTried = '';
 	let loadedFor = '';
 	let lastCoinTap = 0;
@@ -143,6 +148,23 @@
 		}
 	}
 
+	// Poll until the group trusts the user (membership tx mined), updating state.
+	async function waitForMembership(addr: Address, attempts = 12, intervalMs = 1500): Promise<boolean> {
+		for (let i = 0; i < attempts; i++) {
+			try {
+				const s = await readUserState(addr);
+				if (s.isMember) {
+					userState = s;
+					return true;
+				}
+			} catch {
+				/* transient — retry */
+			}
+			await new Promise((r) => setTimeout(r, intervalMs));
+		}
+		return false;
+	}
+
 	// ----- Actions -----
 	async function handleSignup() {
 		const name = username.trim() || randomUsername();
@@ -169,7 +191,20 @@
 			signupNote = 'Joining Circles Amsterdam…';
 			const a = getAddress(safeAddress) as Address;
 			await ensureMembership(a);
+			// Group must trust the user before their welcome bonus can be converted.
+			const member = await waitForMembership(a);
 			await loadState(a);
+			// Offer the 48-CRC welcome bonus as collectable dAMS (needs a fresh
+			// passkey gesture, so it's a tap — surfaced as a celebratory modal).
+			if (member) {
+				try {
+					const max = await maxConvertibleToDams(a);
+					bonusAmount = Math.floor(Number(max) / 1e18);
+					if (bonusAmount > 0) bonusPhase = 'offer';
+				} catch {
+					/* bonus is optional — never block sign-up on it */
+				}
+			}
 		} catch (e: any) {
 			errorMsg = e?.message ?? String(e);
 		} finally {
@@ -286,6 +321,30 @@
 	function closeBoost() {
 		boostPhase = 'idle';
 		boostError = '';
+	}
+
+	// ----- Signup bonus -----
+	async function collectBonus() {
+		const a = connectedAddress;
+		if (!a || bonusAmount <= 0) return;
+		bonusError = '';
+		bonusPhase = 'collecting';
+		try {
+			const txs = await buildBoostTxs(a, BigInt(bonusAmount) * ONE);
+			await wallet.sendTransactions(txs);
+			await loadState(a);
+			boostDone = bonusAmount; // reuse the success toast
+			bonusPhase = 'idle';
+		} catch (e: any) {
+			const m = e?.message ?? 'Could not collect your bonus.';
+			bonusError = /reject|cancel|denied|rejected/i.test(m) ? 'Cancelled.' : m;
+			bonusPhase = 'offer';
+		}
+	}
+
+	function dismissBonus() {
+		bonusPhase = 'idle';
+		bonusError = '';
 	}
 
 	// ----- Lifecycle -----
@@ -588,6 +647,33 @@
 			<p class="menu-name">{wallet.avatarName || 'Your account'}</p>
 			{#if connectedAddress}<p class="menu-addr">{shortAddress(connectedAddress)}</p>{/if}
 			<button class="btn-secondary wide" onclick={signOut}>Sign out</button>
+		</div>
+	{/if}
+
+	<!-- Signup bonus -->
+	{#if bonusPhase !== 'idle'}
+		<button class="sheet-backdrop" aria-label="Close" onclick={dismissBonus}></button>
+		<div class="sheet" role="dialog" aria-modal="true">
+			<div class="grab"></div>
+			<div class="bonus">
+				<div class="coin coin-md drift"></div>
+				<h2 class="sheet-title">Welcome — here's your bonus 🎉</h2>
+				<p class="muted">
+					You've been gifted Circles to get started. Collect them as
+					<strong>{bonusAmount} dAMS</strong>.
+				</p>
+				{#if bonusError}<p class="error">{bonusError}</p>{/if}
+				{#if bonusPhase === 'collecting'}
+					<div class="sheet-center">
+						<div class="spinner"></div>
+						<p class="muted">Collecting…</p>
+						<p class="muted small">Confirm with your device when prompted.</p>
+					</div>
+				{:else}
+					<button class="btn-primary" onclick={collectBonus}>Collect {bonusAmount} dAMS</button>
+					<button class="btn-text" onclick={dismissBonus}>Maybe later</button>
+				{/if}
+			</div>
 		</div>
 	{/if}
 
@@ -1285,6 +1371,19 @@
 		align-items: center;
 		gap: 12px;
 		padding: 24px 0 8px;
+	}
+	.bonus {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 6px;
+	}
+	.bonus .coin-md {
+		margin: 4px 0 10px;
+	}
+	.bonus .btn-primary {
+		margin-top: 14px;
 	}
 	.boost-amount {
 		display: flex;
