@@ -23,9 +23,12 @@ export const CIRCLES_RPC = 'https://rpc.aboutcircles.com/';
 // Normalized through getAddress() so the checksum casing can never be wrong.
 export const HUB_V2: Address = getAddress('0xc12c1e50abb450d6205ea2c3fa861b3b834d13e8');
 
-// Circles Amsterdam group ("dAMS") and its demurraged ERC20 wrapper.
+// Circles Amsterdam group ("dAMS") and its two ERC20 wrappers.
 export const GROUP: Address = getAddress('0xef63594eea262e3d6cf3b93143773ac65fafc2e6');
+// Demurraged "dAMS" — the token the discount is paid in.
 export const DAMS_ERC20: Address = getAddress('0xc8e489adf9602c2af39cc141cb7a54e7f88c5c07');
+// Inflationary/static "s-dAMS" — counted toward the balance the user holds.
+export const DAMS_STATIC_ERC20: Address = getAddress('0x5c68834de90e39e186a9610002dc35a8999a6161');
 
 export const ONE = 10n ** 18n;
 const CIRCLES_TYPE_DEMURRAGE = 0; // CirclesType enum: 0 = Demurrage, 1 = Inflation
@@ -123,10 +126,11 @@ export function publicClient() {
 export interface UserState {
 	registered: boolean; // is a Circles human
 	isMember: boolean; // group trusts this avatar (can group-mint)
-	issuance: bigint; // personal CRC mintable right now (wei)
-	personalCrc: bigint; // personal CRC already held (wei)
-	damsErc1155: bigint; // group dAMS held unwrapped (wei)
-	damsErc20: bigint; // group dAMS held as demurraged ERC20 (wei)
+	mintable: bigint; // personal CRC mintable right now, from Hub.calculateIssuance (wei)
+	damsDemurraged: bigint; // dAMS held as demurraged ERC20 (wei)
+	damsStatic: bigint; // s-dAMS held as inflationary/static ERC20 (wei)
+	personalCrc: bigint; // personal CRC already held as ERC1155 (wei) — used by the claim
+	damsErc1155: bigint; // group dAMS held unwrapped as ERC1155 (wei) — used by the claim
 }
 
 export async function readUserState(address: Address): Promise<UserState> {
@@ -134,17 +138,23 @@ export async function readUserState(address: Address): Promise<UserState> {
 	const id = toTokenId(address);
 	const groupId = toTokenId(GROUP);
 
-	const [registered, isMember, personalCrc, damsErc1155, damsErc20] = await Promise.all([
-		client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'isHuman', args: [address] }),
-		client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'isTrusted', args: [GROUP, address] }),
-		client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'balanceOf', args: [address, id] }),
-		client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'balanceOf', args: [address, groupId] }),
-		client
-			.readContract({ address: DAMS_ERC20, abi: erc20Abi, functionName: 'balanceOf', args: [address] })
-			.catch(() => 0n)
-	]);
+	const [registered, isMember, personalCrc, damsErc1155, damsDemurraged, damsStatic] =
+		await Promise.all([
+			client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'isHuman', args: [address] }),
+			client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'isTrusted', args: [GROUP, address] }),
+			client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'balanceOf', args: [address, id] }),
+			client.readContract({ address: HUB_V2, abi: hubAbi, functionName: 'balanceOf', args: [address, groupId] }),
+			client
+				.readContract({ address: DAMS_ERC20, abi: erc20Abi, functionName: 'balanceOf', args: [address] })
+				.catch(() => 0n),
+			client
+				.readContract({ address: DAMS_STATIC_ERC20, abi: erc20Abi, functionName: 'balanceOf', args: [address] })
+				.catch(() => 0n)
+		]);
 
-	let issuance = 0n;
+	// Mintable comes straight from the Hub — never synthesized client-side.
+	// calculateIssuance reverts when there's nothing to mint yet; treat as 0.
+	let mintable = 0n;
 	if (registered) {
 		try {
 			const res = (await client.readContract({
@@ -153,18 +163,19 @@ export async function readUserState(address: Address): Promise<UserState> {
 				functionName: 'calculateIssuance',
 				args: [address]
 			})) as readonly [bigint, bigint, bigint];
-			issuance = res[0];
+			mintable = res[0];
 		} catch {
-			issuance = 0n;
+			mintable = 0n;
 		}
 	}
 
-	return { registered, isMember, issuance, personalCrc, damsErc1155, damsErc20 };
+	return { registered, isMember, mintable, damsDemurraged, damsStatic, personalCrc, damsErc1155 };
 }
 
-// Everything the user can ultimately spend as dAMS, in wei.
+// The balance the user sees: dAMS they already hold (both ERC20 wrappers) plus
+// what they can mint right now (Hub issuance). All read on-chain.
 export function totalAvailableWei(s: UserState): bigint {
-	return s.damsErc20 + s.damsErc1155 + s.personalCrc + s.issuance;
+	return s.damsStatic + s.damsDemurraged + s.mintable;
 }
 
 function floorToWhole(wei: bigint): bigint {
@@ -191,14 +202,14 @@ export function buildClaimTxs(
 ): ClaimPlan {
 	const txs: Transaction[] = [];
 
-	if (s.issuance > 0n) {
+	if (s.mintable > 0n) {
 		txs.push({
 			to: HUB_V2,
 			data: encodeFunctionData({ abi: hubAbi, functionName: 'personalMint', args: [] })
 		});
 	}
 
-	const collateralWei = floorToWhole(s.personalCrc + s.issuance);
+	const collateralWei = floorToWhole(s.personalCrc + s.mintable);
 	if (collateralWei > 0n) {
 		txs.push({
 			to: HUB_V2,
@@ -222,7 +233,7 @@ export function buildClaimTxs(
 		});
 	}
 
-	const deliverableErc20 = s.damsErc20 + wrapWei;
+	const deliverableErc20 = s.damsDemurraged + wrapWei;
 	txs.push({
 		to: DAMS_ERC20,
 		data: encodeFunctionData({

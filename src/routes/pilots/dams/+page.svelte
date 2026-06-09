@@ -31,7 +31,6 @@
 
 	// ----- State -----
 	let userState = $state<UserState | null>(null);
-	let fetchedAt = $state(0);
 	let now = $state(Date.now());
 	let selectedShop = $state<Address | null>(null);
 	let shopName = $state<string | null>(null);
@@ -53,10 +52,14 @@
 		wallet.connected && wallet.address ? (getAddress(wallet.address) as Address) : null
 	);
 	const offer = $derived<Offer>(selectedShop ? offerFor(selectedShop) : DEFAULT_OFFER);
-	const stats = $derived(userState ? liveStats(userState, fetchedAt, now) : null);
-	const elig = $derived(
-		userState ? eligibility(userState, fetchedAt, now, offer.amountDams) : null
+	// Balance comes straight from chain (held dAMS + Hub mintable) — never
+	// synthesized. The counter just ticks down to the next top-of-hour, when the
+	// next whole dAMS is minted.
+	const availableWhole = $derived(
+		userState ? Math.floor(Number(totalAvailableWei(userState)) / 1e18) : 0
 	);
+	const nextMint = $derived(mintCountdown(now));
+	const elig = $derived(userState ? eligibility(availableWhole, now, offer.amountDams) : null);
 	const enough = $derived(
 		userState && selectedShop ? isEnoughDeliver(userState, selectedShop, offer.amountDams) : false
 	);
@@ -83,26 +86,25 @@
 		return buildClaimTxs(shop, s, shop, amountWei).deliverableErc20 >= amountWei;
 	}
 
-	function liveStats(s: UserState, at: number, t: number) {
-		const accruedHours = Math.max(0, t - at) / 3_600_000;
-		const availFloat = Number(totalAvailableWei(s)) / 1e18 + accruedHours;
-		const whole = Math.floor(availFloat);
-		const frac = availFloat - whole;
-		const secs = Math.max(0, Math.ceil((1 - frac) * 3600));
-		return {
-			whole,
-			nextLabel: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`,
-			progressPct: frac * 100
-		};
+	// Whole CRCs mint at the top of each UTC hour (issuance is hour-aligned to the
+	// protocol's inflation day-zero). The epoch is UTC-hour-aligned, so ms-into-hour
+	// is just `t % 3_600_000`.
+	function mintCountdown(t: number) {
+		const msIntoHour = t % 3_600_000;
+		const secs = Math.max(0, Math.round((3_600_000 - msIntoHour) / 1000));
+		const mm = Math.floor(secs / 60);
+		const ss = secs % 60;
+		return { label: `${mm}:${String(ss).padStart(2, '0')}`, progressPct: (msIntoHour / 3_600_000) * 100 };
 	}
 
-	function eligibility(s: UserState, at: number, t: number, amountDams: number) {
-		const accruedHours = Math.max(0, t - at) / 3_600_000;
-		const availFloat = Number(totalAvailableWei(s)) / 1e18 + accruedHours;
-		const remaining = amountDams - availFloat;
+	function eligibility(availableWhole: number, t: number, amountDams: number) {
+		const remaining = amountDams - availableWhole;
 		if (remaining <= 0) return { eligible: true, label: '' };
-		const h = Math.floor(remaining);
-		const m = Math.floor((remaining - h) * 60);
+		// First missing dAMS lands at the next top-of-hour, then one per hour.
+		const minsToNextHour = Math.ceil((3_600_000 - (t % 3_600_000)) / 60_000);
+		const totalMins = (remaining - 1) * 60 + minsToNextHour;
+		const h = Math.floor(totalMins / 60);
+		const m = totalMins % 60;
 		return { eligible: false, label: h > 0 ? `${h}h ${m}m` : `${m}m` };
 	}
 
@@ -113,7 +115,6 @@
 	async function loadState(addr: Address): Promise<UserState> {
 		const s = await readUserState(addr);
 		userState = s;
-		fetchedAt = Date.now();
 		return s;
 	}
 
@@ -239,7 +240,15 @@
 		// the passkey on a cold landing; newcomers use the explicit buttons).
 		if (wallet.getSavedSafeAddress()) wallet.autoConnect();
 
-		const tick = setInterval(() => (now = Date.now()), 1000);
+		const tick = setInterval(() => {
+			const t = Date.now();
+			const rolledOver = Math.floor(t / 3_600_000) !== Math.floor(now / 3_600_000);
+			now = t;
+			// At the top of the hour a new dAMS mints — re-read so the balance updates.
+			if (rolledOver && wallet.connected && wallet.address) {
+				loadState(getAddress(wallet.address) as Address);
+			}
+		}, 1000);
 		const refresh = setInterval(() => {
 			if (wallet.connected && wallet.address) loadState(getAddress(wallet.address) as Address);
 		}, 60_000);
@@ -373,7 +382,7 @@
 			</section>
 
 			<!-- Loading balance -->
-		{:else if !userState || !stats}
+		{:else if !userState}
 			<section class="screen center">
 				<div class="spinner"></div>
 				<p class="muted">Reading your balance…</p>
@@ -384,7 +393,7 @@
 			<section class="screen">
 				<div class="coin coin-md">
 					<div class="coin-num">
-						<span class="num">{stats.whole}</span>
+						<span class="num">{availableWhole}</span>
 						<span class="unit">dAMS</span>
 					</div>
 				</div>
@@ -413,7 +422,7 @@
 							{#if elig?.eligible}
 								Try again in a moment.
 							{:else}
-								You have {stats.whole} of {offer.amountDams} dAMS. They grow by one every hour.
+								You have {availableWhole} of {offer.amountDams} dAMS. They grow by one every hour.
 							{/if}
 						</p>
 					{/if}
@@ -425,7 +434,7 @@
 			<section class="screen">
 				<div class="coin coin-lg">
 					<div class="coin-num">
-						<span class="num big">{stats.whole}</span>
+						<span class="num big">{availableWhole}</span>
 						<span class="unit">dAMS</span>
 					</div>
 				</div>
@@ -433,9 +442,9 @@
 				<div class="countdown">
 					<div class="countdown-row">
 						<span aria-hidden="true">⏳</span>
-						<span>Next dAMS in <strong>{stats.nextLabel}</strong></span>
+						<span>Next dAMS in <strong>{nextMint.label}</strong></span>
 					</div>
-					<div class="meter"><div class="meter-fill" style="width:{stats.progressPct}%"></div></div>
+					<div class="meter"><div class="meter-fill" style="width:{nextMint.progressPct}%"></div></div>
 				</div>
 
 				<div class="block">
