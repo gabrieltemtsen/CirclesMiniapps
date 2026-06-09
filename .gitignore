@@ -10,6 +10,9 @@ build/
 .env.*
 !.env.example
 
+# git
+.github/workflows/
+
 # TLS certificates (generated locally)
 *.pem
 
@@ -25,6 +28,4 @@ Thumbs.db
 
 # llm files
 .claude/
-.context/
-AGENT.md
-CLAUDE.md
+.agents/

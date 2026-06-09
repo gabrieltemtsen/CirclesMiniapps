@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circles Jukebox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Drifting aurora blobs (Warp-style) -->
+  <div class="bg-fx" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="title-row">
+        <h1>🎶 Jukebox</h1>
+        <span id="badge" class="badge badge-disconnected">Not connected</span>
+      </div>
+      <p class="subtitle">Pick a song, pay 10 CRC, hear it on the room speakers.</p>
+    </header>
+
+    <!-- Now playing bar — always visible -->
+    <div id="now-playing" class="now-playing hidden">
+      <div class="now-playing-inner">
+        <div class="now-playing-pulse"></div>
+        <img id="now-playing-art" class="now-playing-art" alt="" />
+        <div class="now-playing-meta">
+          <div class="now-playing-label">
+            <span>Latest request</span>
+            <span class="eq" aria-hidden="true">
+              <span style="animation-delay: 0s"></span>
+              <span style="animation-delay: 0.16s"></span>
+              <span style="animation-delay: 0.32s"></span>
+              <span style="animation-delay: 0.48s"></span>
+              <span style="animation-delay: 0.64s"></span>
+            </span>
+          </div>
+          <div id="now-playing-title" class="now-playing-title"></div>
+          <div id="now-playing-artist" class="now-playing-artist"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button id="tab-songs" class="tab active" role="tab" aria-selected="true">Songs</button>
+      <button id="tab-queue" class="tab" role="tab" aria-selected="false">Recent requests</button>
+    </nav>
+
+    <!-- Songs tab -->
+    <section id="songs-panel" class="panel" role="tabpanel">
+      <div id="back-to-top" class="back-to-top hidden" title="Back to top">↑</div>
+      <div id="disconnected-hint" class="card card-hint">
+        <div class="card-icon">🔗</div>
+        <p class="card-text">
+          Open this app from the Circles wallet to pay 10 CRC and add a song to the queue.
+          Below is the curated catalog you can pick from.
+        </p>
+      </div>
+      <div id="song-list" class="song-list"></div>
+    </section>
+
+    <!-- Queue tab -->
+    <section id="queue-panel" class="panel hidden" role="tabpanel">
+      <div class="card queue-header">
+        <h2>Recent requests</h2>
+        <p class="card-text">
+          The latest songs people paid 10 CRC to play. The big screen is the source of truth
+          for what's playing right now.
+        </p>
+      </div>
+      <div id="queue-list" class="queue-list">
+        <div class="queue-empty">Loading queue…</div>
+      </div>
+    </section>
+
+    <!-- Confirmation modal -->
+    <div id="confirm-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content card">
+        <h2 id="confirm-title">Play this song?</h2>
+        <div class="modal-song-preview">
+          <img id="confirm-artwork" class="confirm-artwork" alt="" />
+          <div>
+            <div id="confirm-song-title" class="confirm-song-title"></div>
+            <div id="confirm-song-artist" class="confirm-song-artist"></div>
+          </div>
+        </div>
+        <p class="card-text" id="confirm-message">
+          You'll pay 10 CRC. Your name and avatar will show up in the queue.
+        </p>
+        <div id="confirm-status" class="confirm-status hidden"></div>
+        <div class="modal-actions">
+          <button id="confirm-cancel" class="btn-secondary">Cancel</button>
+          <button id="confirm-proceed" class="btn-primary">Pay 10 CRC</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
