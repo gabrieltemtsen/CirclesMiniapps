@@ -44,6 +44,7 @@
 	let receipt = $state<ReceiptData | null>(null);
 	let showReceipt = $state(false);
 	let menuOpen = $state(false);
+	let showNameField = $state(false); // username field appears only after the CTA tap
 
 	// Boost ("secret" route): convert existing Circles into max dAMS.
 	let showBoostHint = $state(false);
@@ -289,8 +290,6 @@
 
 	// ----- Lifecycle -----
 	onMount(() => {
-		username = randomUsername();
-
 		const url = new URL(window.location.href);
 		const shopRaw = url.searchParams.get('shop') ?? url.searchParams.get('recipient');
 		if (shopRaw && isAddress(shopRaw)) selectedShop = getAddress(shopRaw);
@@ -415,22 +414,33 @@
 					</div>
 				</div>
 
-				<label class="field">
-					<span class="field-label">Pick a username</span>
-					<div class="field-row">
-						<input bind:value={username} maxlength="24" spellcheck="false" autocomplete="off" />
-						<button class="shuffle" aria-label="Random username" onclick={shuffleUsername}>⟳</button>
-					</div>
-				</label>
-
 				<div class="actions">
-					<button class="btn-primary stacked" onclick={handleSignup}>
-						<span>Join the community</span>
-						<span class="sub">no email required</span>
-					</button>
-					<button class="btn-text" onclick={handleLogin}>
-						{wallet.connecting ? 'Connecting…' : 'I already have an account'}
-					</button>
+					{#if showNameField}
+						<label class="field">
+							<span class="field-label">Pick a username</span>
+							<div class="field-row">
+								<input
+									bind:value={username}
+									maxlength="24"
+									spellcheck="false"
+									autocomplete="off"
+									placeholder="Choose one — or leave blank"
+								/>
+								<button class="shuffle" aria-label="Suggest a random name" onclick={shuffleUsername}>⟳</button>
+							</div>
+							<span class="field-hint">Leave blank for a random name. No email required.</span>
+						</label>
+						<button class="btn-primary" onclick={handleSignup}>Create account</button>
+						<button class="btn-text" onclick={() => (showNameField = false)}>Back</button>
+					{:else}
+						<button class="btn-primary stacked" onclick={() => (showNameField = true)}>
+							<span>Join the community</span>
+							<span class="sub">no email required</span>
+						</button>
+						<button class="btn-text" onclick={handleLogin}>
+							{wallet.connecting ? 'Connecting…' : 'I already have an account'}
+						</button>
+					{/if}
 				</div>
 			</section>
 
@@ -930,6 +940,13 @@
 		font-size: 0.85rem;
 		color: rgba(255, 255, 255, 0.6);
 		margin-bottom: 6px;
+	}
+	.field-hint {
+		display: block;
+		margin-top: 8px;
+		margin-bottom: 4px;
+		font-size: 0.8rem;
+		color: rgba(255, 255, 255, 0.5);
 	}
 	.field-row {
 		display: flex;
