@@ -279,5 +279,15 @@
     "tags": ["game", "chess"],
     "category": "garage",
     "isHidden": true
+  },
+  {
+    "slug": "dappcon26-booth-pass",
+    "name": "DappCon26 Booth Pass",
+    "logo": "https://boost-mini-app-h464h.ondigitalocean.app/icon.svg",
+    "url": "https://boost-mini-app-h464h.ondigitalocean.app/",
+    "description": "Scan. Sign. You're in the DappCon26 circle.",
+    "tags": ["internal", "events"],
+    "category": "miniapp",
+    "isHidden": true
   }
 ]
