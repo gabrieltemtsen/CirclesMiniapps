@@ -240,7 +240,8 @@
       "yield",
       "tools"
     ],
-    "category": "garage"
+    "category": "garage",
+    "strongDisclaimer": true
   },
   {
     "slug": "card-circles",

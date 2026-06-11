@@ -2,7 +2,6 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { getAddress } from 'viem';
-	import Disclaimer from '$lib/Disclaimer.svelte';
 	import OfflineNotice from '$lib/OfflineNotice.svelte';
 	import ChildSafePicker from '$lib/ChildSafePicker.svelte';
 	import { initAnalytics, trackPageView } from '$lib/analytics';
@@ -37,7 +36,6 @@
 	});
 </script>
 
-<Disclaimer />
 <OfflineNotice />
 <ChildSafePicker />
 {@render children()}

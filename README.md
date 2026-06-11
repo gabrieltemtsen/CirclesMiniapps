@@ -12,7 +12,7 @@ Garage apps:
 
 - Can be hosted anywhere — your own domain, Vercel, Netlify, GitHub Pages, etc.
 - Run under a stricter host transaction policy (see [Garage transaction policy](#garage-transaction-policy)).
-- Show a "use at your own risk" preview disclaimer to users.
+- Show a legal notice to users. Apps flagged with `"strongDisclaimer": true` in the manifest show a stronger "use at your own risk" preview disclaimer instead of the standard curated mini-app notice.
 
 To submit a curated production-grade Embedded Mini App instead, see [docs.aboutcircles.com/miniapps/contribute-mini-apps](https://docs.aboutcircles.com/miniapps/contribute-mini-apps).
 
@@ -42,6 +42,7 @@ The marketplace reads metadata from `static/miniapps.json`. When a user opens `/
 | `tags` | yes | At least one tag, e.g. `["defi"]`. |
 | `category` | yes | Must be `"garage"`. |
 | `isHidden` | no | If `true`, hides the tile from the grid. The app is still reachable at `/miniapps/<slug>`. |
+| `strongDisclaimer` | no | If `true`, the app shows the strong "use at your own risk" disclaimer instead of the standard curated mini-app notice. |
 
 Example entry:
 

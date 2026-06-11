@@ -5,21 +5,32 @@
 	const MINIAPPS_KEY = 'disclaimer-dismissed-miniapps';
 	const CURATED_KEY = 'disclaimer-dismissed-curated';
 
+	let { strongDisclaimer }: { strongDisclaimer?: boolean } = $props();
+
 	const isPlayground = $derived($page.url.pathname === '/playground');
 	const isMiniapps = $derived($page.url.pathname.startsWith('/miniapps'));
 	const isHidden = $derived(
-		$page.url.pathname.startsWith('/pilots/kudos-ga') ||
+		$page.url.pathname.startsWith('/pilots') ||
 		$page.url.pathname.startsWith('/invitation')
 	);
 
-	// Mini-apps and playground share the same strong-warning copy. Each surface
-	// has its own dismissal key so accepting one doesn't waive the other.
-	const isStrongWarning = $derived(isPlayground || isMiniapps);
+	// The playground and mini-apps flagged `strongDisclaimer` in the manifest
+	// get the strong-warning copy; all other mini-apps get the curated notice.
+	// Each variant has its own dismissal key so accepting one doesn't waive
+	// the other.
+	const isStrongMiniapp = $derived(isMiniapps && strongDisclaimer === true);
+	const isStrongWarning = $derived(isPlayground || isStrongMiniapp);
 	const disclaimerDismissedKey = $derived(
-		isPlayground ? PLAYGROUND_KEY : isMiniapps ? MINIAPPS_KEY : CURATED_KEY
+		isPlayground ? PLAYGROUND_KEY : isStrongMiniapp ? MINIAPPS_KEY : CURATED_KEY
 	);
 
+	// On mini-app pages the flag arrives with the manifest fetch; hold off
+	// until then so the curated copy doesn't flash before a flagged app's
+	// strong warning.
+	const awaitingManifest = $derived(isMiniapps && strongDisclaimer === undefined);
+
 	let disclaimerDismissed = $state(false);
+	let expanded = $state(false);
 
 	$effect(() => {
 		if (typeof localStorage === 'undefined') return;
@@ -33,11 +44,11 @@
 	}
 </script>
 
-{#if !disclaimerDismissed && !isHidden}
-	<div class="disclaimer-banner">
-		<div class="disclaimer-shell" class:compact={!isStrongWarning}>
+{#if !disclaimerDismissed && !isHidden && !awaitingManifest}
+	<div class="disclaimer-overlay">
+		<div class="disclaimer-card">
 			<div class="disclaimer-header">
-				<div class="disclaimer-badge">Legal notice</div>
+				<div class="disclaimer-badge" class:warn={isStrongWarning}>Legal notice</div>
 				{#if isStrongWarning}
 					<h2 class="disclaimer-title">DEVELOPMENT PREVIEW - USE AT YOUR OWN RISK</h2>
 				{:else}
@@ -45,7 +56,7 @@
 				{/if}
 			</div>
 
-			<div class="disclaimer-content">
+			<div class="disclaimer-content" class:collapsed={!expanded}>
 				{#if isStrongWarning}
 					<p class="disclaimer-text">
 						This experimental mini-apps feature is made available in connection with the Gnosis App
@@ -70,181 +81,183 @@
 					</p>
 				{:else}
 					<p class="disclaimer-text">
-						Mini-apps on this page trigger on-chain transactions from your Safe wallet. Gnosis does
-						not provide investment advice or guarantees and cannot reverse transactions or compensate
-						you for any loss. Always check what you sign. For further details, please refer to the
-						Gnosis App Terms of Use available via
-						<a
-							href="https://app.gnosis.io"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							app.gnosis.io
-						</a>.
+						Mini‑apps shown here are created and operated by independent developers, not by Gnosis
+						Ecosystem (Cayman) Ltd (“Gnosis”). They appear in this interface for your convenience,
+						but Gnosis does not control their code or ongoing operation and does not guarantee that
+						they are safe, secure, or error‑free.
+					</p>
+					<p class="disclaimer-text">
+						By using a mini‑app, you understand that you interact with it at your own risk. Any
+						blockchain transactions you sign are final and cannot be reversed, and Gnosis will not
+						be responsible for, or obliged to compensate you for, any resulting loss of funds,
+						tokens or other assets. Only use mini‑apps and sign transactions if you understand what
+						they do and can afford to lose the assets involved.
 					</p>
 				{/if}
 			</div>
 
 			<div class="disclaimer-actions">
-				<button class="disclaimer-close" onclick={dismissDisclaimer}>
-					{isStrongWarning ? 'I understand the risks' : 'Continue'}
+				<button
+					class="disclaimer-more"
+					aria-expanded={expanded}
+					onclick={() => (expanded = !expanded)}
+				>
+					{expanded ? 'Show less' : 'Read more'}
 				</button>
+				<button class="disclaimer-agree" onclick={dismissDisclaimer}>Continue</button>
 			</div>
 		</div>
 	</div>
 {/if}
 
 <style>
-	.disclaimer-banner {
-		position: sticky;
-		top: 0;
-		z-index: 9999;
-		padding: 18px 20px 0;
-		background:
-			linear-gradient(180deg, rgba(250, 245, 241, 0.96) 0%, rgba(250, 245, 241, 0.88) 78%, rgba(250, 245, 241, 0) 100%);
-		backdrop-filter: blur(14px);
-	}
-
-	.disclaimer-shell {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: 22px 24px;
-		border: 1px solid rgba(14, 0, 168, 0.1);
-		border-radius: var(--radius-card);
-		background:
-			linear-gradient(135deg, rgba(234, 232, 255, 0.9) 0%, rgba(255, 255, 255, 0.98) 38%, rgba(254, 235, 199, 0.34) 100%);
-		box-shadow: var(--shadow-card);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.disclaimer-shell.compact {
-		max-width: 960px;
-		padding: 18px 22px;
-	}
-
-	.disclaimer-shell::before {
-		content: '';
+	/* Fills the hosting miniapp card (.iframe-card is position: relative with
+	   overflow: hidden), blocking interaction with the iframe until dismissed. */
+	.disclaimer-overlay {
 		position: absolute;
-		inset: 0 auto 0 0;
-		width: 6px;
-		background: linear-gradient(180deg, var(--accent) 0%, #ff7d3e 100%);
+		inset: 0;
+		z-index: 20;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+		background: rgba(5, 6, 26, 0.45);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+	}
+
+	.disclaimer-card {
+		width: 100%;
+		max-width: 520px;
+		max-height: 100%;
+		overflow-y: auto;
+		padding: 20px 22px 16px;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-card);
+		background: var(--card);
+		box-shadow: var(--shadow-popup);
+		animation: disclaimer-in 0.18s ease-out;
+	}
+
+	@keyframes disclaimer-in {
+		from {
+			opacity: 0;
+			transform: translateY(6px) scale(0.985);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
 	}
 
 	.disclaimer-header {
 		display: flex;
-		flex-direction: column;
+		flex-wrap: wrap;
+		align-items: center;
 		gap: 10px;
-		margin-bottom: 14px;
-	}
-
-	.compact .disclaimer-header {
-		gap: 8px;
 		margin-bottom: 10px;
 	}
 
 	.disclaimer-badge {
 		width: fit-content;
-		padding: 7px 12px;
+		padding: 4px 10px;
 		border-radius: var(--radius-pill);
-		background: rgba(14, 0, 168, 0.08);
+		background: var(--accent-soft);
 		color: var(--accent);
-		font-size: 0.8rem;
+		font-size: 0.68rem;
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
 	}
 
+	.disclaimer-badge.warn {
+		background: var(--warn-bg);
+		color: var(--warn-ink);
+	}
+
 	.disclaimer-title {
-		max-width: 760px;
-		font-size: clamp(1.1rem, 1rem + 0.7vw, 1.55rem);
-		font-weight: 800;
+		font-size: 0.95rem;
+		font-weight: 700;
 		color: var(--ink);
 		margin: 0;
-		letter-spacing: -0.03em;
-		line-height: 1.1;
+		letter-spacing: -0.02em;
+		line-height: 1.25;
 	}
 
-	.disclaimer-content {
-		max-width: 920px;
-	}
-
-	.compact .disclaimer-content {
-		max-width: none;
+	.disclaimer-content.collapsed {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 5;
+		line-clamp: 5;
+		overflow: hidden;
 	}
 
 	.disclaimer-text {
-		font-size: 0.95rem;
+		font-size: 0.85rem;
 		color: var(--muted);
-		line-height: 1.62;
-		margin: 0 0 12px;
+		line-height: 1.6;
+		margin: 0 0 10px;
 	}
 
-	.compact .disclaimer-text {
+	.disclaimer-text:last-child {
 		margin-bottom: 0;
-	}
-
-	.disclaimer-text a {
-		color: var(--accent);
-		text-decoration: underline;
-		text-underline-offset: 2px;
 	}
 
 	.disclaimer-actions {
 		display: flex;
-		justify-content: flex-end;
-		padding-top: 8px;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-top: 14px;
+		padding-top: 12px;
+		border-top: 1px solid var(--line-soft);
 	}
 
-	.compact .disclaimer-actions {
-		padding-top: 14px;
+	.disclaimer-more {
+		background: none;
+		border: none;
+		padding: 0;
+		color: var(--accent);
+		font-size: 0.85rem;
+		font-weight: 600;
+		font-family: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
 	}
 
-	.disclaimer-close {
+	.disclaimer-more:hover {
+		color: var(--accent-mid);
+	}
+
+	.disclaimer-agree {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--accent);
-		color: white;
-		border: 1px solid transparent;
+		background: linear-gradient(130deg, var(--accent), var(--accent-mid));
+		color: #fff;
+		border: none;
 		border-radius: var(--radius-pill);
-		padding: 12px 20px;
-		font-size: 0.95rem;
-		font-weight: 700;
+		padding: 9px 22px;
+		font-size: 0.85rem;
+		font-weight: 600;
+		font-family: inherit;
 		cursor: pointer;
-		box-shadow: 0 10px 24px rgba(14, 0, 168, 0.18);
-		transition:
-			transform 0.15s ease,
-			background 0.15s ease,
-			box-shadow 0.15s ease;
+		transition: opacity 0.15s;
 	}
 
-	.disclaimer-close:hover {
-		background: var(--accent-mid);
-		transform: translateY(-1px);
-		box-shadow: 0 14px 28px rgba(14, 0, 168, 0.24);
+	.disclaimer-agree:hover {
+		opacity: 0.85;
 	}
 
 	@media (max-width: 720px) {
-		.disclaimer-banner {
-			padding: 12px 12px 0;
+		.disclaimer-overlay {
+			padding: 10px;
 		}
 
-		.disclaimer-shell {
-			padding: 18px 18px 20px;
+		.disclaimer-card {
+			padding: 16px 16px 14px;
 			border-radius: 18px;
-		}
-
-		.disclaimer-text {
-			font-size: 0.92rem;
-		}
-
-		.disclaimer-actions {
-			justify-content: stretch;
-		}
-
-		.disclaimer-close {
-			width: 100%;
 		}
 	}
 </style>

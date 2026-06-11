@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import AppNavigation from '$lib/AppNavigation.svelte';
+	import Disclaimer from '$lib/Disclaimer.svelte';
 	import { wallet } from '$lib/wallet.svelte.ts';
 	import ApprovalPopup from '$lib/ApprovalPopup.svelte';
 	import RestrictedActionPopup from '$lib/RestrictedActionPopup.svelte';
@@ -43,6 +44,7 @@
 		beforeIframe?: Snippet;
 		analytics?: AnalyticsContext;
 		iframeLoadTimeoutMs?: number;
+		strongDisclaimer?: boolean;
 	};
 
 	let {
@@ -60,7 +62,8 @@
 		emptyState,
 		beforeIframe,
 		analytics,
-		iframeLoadTimeoutMs = 15000
+		iframeLoadTimeoutMs = 15000,
+		strongDisclaimer
 	}: Props = $props();
 
 	let showLogout = $state(false);
@@ -414,6 +417,7 @@
 {@render beforeIframe?.()}
 
 <div class="iframe-card" bind:this={cardEl} class:pseudo-fullscreen={pseudoFullscreen}>
+	<Disclaimer {strongDisclaimer} />
 	{#if isOffline && offlineState}
 		{@render offlineState()}
 	{:else if !src && emptyState}
