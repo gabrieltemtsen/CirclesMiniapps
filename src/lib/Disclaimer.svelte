@@ -48,11 +48,10 @@
 	<div class="disclaimer-overlay">
 		<div class="disclaimer-card">
 			<div class="disclaimer-header">
-				<div class="disclaimer-badge" class:warn={isStrongWarning}>Legal notice</div>
 				{#if isStrongWarning}
 					<h2 class="disclaimer-title">DEVELOPMENT PREVIEW - USE AT YOUR OWN RISK</h2>
 				{:else}
-					<h2 class="disclaimer-title">Curated mini-app notice</h2>
+					<h2 class="disclaimer-title">Quick heads-up</h2>
 				{/if}
 			</div>
 
@@ -104,7 +103,7 @@
 				>
 					{expanded ? 'Show less' : 'Read more'}
 				</button>
-				<button class="disclaimer-agree" onclick={dismissDisclaimer}>Continue</button>
+				<button class="disclaimer-agree" onclick={dismissDisclaimer}>Ok. Show me the app!</button>
 			</div>
 		</div>
 	</div>
@@ -156,23 +155,6 @@
 		align-items: center;
 		gap: 10px;
 		margin-bottom: 10px;
-	}
-
-	.disclaimer-badge {
-		width: fit-content;
-		padding: 4px 10px;
-		border-radius: var(--radius-pill);
-		background: var(--accent-soft);
-		color: var(--accent);
-		font-size: 0.68rem;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-
-	.disclaimer-badge.warn {
-		background: var(--warn-bg);
-		color: var(--warn-ink);
 	}
 
 	.disclaimer-title {
