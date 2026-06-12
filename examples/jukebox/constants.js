@@ -16,7 +16,7 @@ export const RPC_FALLBACKS = [
 //
 // It is a Safe-based org avatar that implements onERC1155Received, so a
 // direct Hub V2 safeTransferFrom of any avatar's CRC to it succeeds.
-export const JUKEBOX_ADDRESS = '0xbe6e5a0bdface700cbe8f0d1c28fcb8404a1622b';
+export const JUKEBOX_ADDRESS = '0x543e3bb2473fb4a1695b6d3b8b6f11140478d20d';
 
 // Circles Hub V2 (ERC-1155). Payments are native CRC transferred via
 // `safeTransferFrom(from, JUKEBOX_ADDRESS, tokenId, amount, "")`, where
