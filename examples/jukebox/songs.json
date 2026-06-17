@@ -317,6 +317,22 @@
     "artist": "Masayoshi Fujita / el fog",
     "soundcloudUrl": "https://soundcloud.com/masayoshifujita/mountain-dub",
     "durationSec": 343,
-    "artworkUrl": "https://i1.sndcdn.com/artworks-000003474880-hj0m72-t500x500.jpg"
+        "artworkUrl": "https://i1.sndcdn.com/artworks-000003474880-hj0m72-t500x500.jpg"
+  },
+  {
+    "id": 41,
+    "title": "Portals",
+    "artist": "Orto Grut",
+    "soundcloudUrl": "https://soundcloud.com/ortogrut/portals",
+    "durationSec": 499,
+    "artworkUrl": "https://i1.sndcdn.com/artworks-000496170753-tapzsc-t500x500.jpg"
+  },
+  {
+    "id": 42,
+    "title": "Break My Stride",
+    "artist": "Matthew Wilder",
+    "soundcloudUrl": "https://soundcloud.com/matthew-wilder-official/break-my-stride",
+    "durationSec": 182,
+    "artworkUrl": "https://i1.sndcdn.com/artworks-68UNQJ9oexsA-0-t500x500.jpg"
   }
 ]
