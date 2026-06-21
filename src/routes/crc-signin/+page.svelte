@@ -149,6 +149,20 @@
 			// re-announce so its SDK/listener resyncs.
 			postTo(window.parent, { type: 'crc_bridge_ready' });
 		}
+
+		// Parent-initiated logout. The host can't reach the wallet directly, so it
+		// asks us to drop the session. We must clear the SAVED session (not just the
+		// in-memory connection) — otherwise the one-shot restore effect below, or a
+		// host that reloads the iframe, would immediately auto-connect again. After
+		// wallet.disconnect() the connected-state effect posts `wallet_disconnected`
+		// to the parent, and manuallyDisconnected blocks any further auto-restore in
+		// this page instance.
+		if (data.type === 'disconnect') {
+			didAttemptRestore = true; // belt-and-suspenders: never auto-restore after an explicit logout
+			wallet.disconnect();
+			return;
+		}
+
 		baseHandleMessage(event);
 	}
 
