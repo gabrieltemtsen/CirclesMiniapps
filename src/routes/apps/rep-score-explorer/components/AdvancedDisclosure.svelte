@@ -5,19 +5,15 @@
 	let {
 		avatar,
 		score,
-		cfg
-	}: { avatar: AvatarScore; score: DerivedScore; cfg: RepConfig } = $props();
+		cfg,
+		inline = false
+	}: { avatar: AvatarScore; score: DerivedScore; cfg: RepConfig; inline?: boolean } = $props();
 
 	const gate = $derived(avatar.components?.gate?.live ?? null);
 	const d = $derived(cfg.defaults);
 </script>
 
-<details class="adv">
-	<summary>
-		<span>Advanced — raw pipeline values</span>
-		<span class="chev">▾</span>
-	</summary>
-
+{#snippet groups()}
 	<div class="grp">
 		<span class="grp-title">Score assembly</span>
 		<StatRow label="s_b (behaviour)" value={fmtNumber(score.sB, 6)} mono />
@@ -74,16 +70,36 @@
 			{#if avatar.computed_at}<StatRow label="computed_at" value={String(avatar.computed_at)} mono />{/if}
 		</div>
 	{/if}
-</details>
+{/snippet}
+
+{#if inline}
+	<div class="adv-card">
+		<div class="groups cols">{@render groups()}</div>
+	</div>
+{:else}
+	<details class="adv">
+		<summary>
+			<span>Advanced — raw pipeline values</span>
+			<span class="chev">▾</span>
+		</summary>
+		<div class="groups">{@render groups()}</div>
+	</details>
+{/if}
 
 <style>
-	.adv {
+	.adv,
+	.adv-card {
 		background: var(--card);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-card);
 		box-shadow: var(--shadow-card);
-		padding: 4px 18px;
 		margin-bottom: 14px;
+	}
+	.adv {
+		padding: 4px 18px;
+	}
+	.adv-card {
+		padding: 16px 18px;
 	}
 	summary {
 		display: flex;
@@ -109,6 +125,11 @@
 	.grp {
 		padding: 8px 0 4px;
 		border-top: 1px solid var(--line-soft);
+		break-inside: avoid;
+	}
+	.cols .grp:first-child {
+		border-top: none;
+		padding-top: 0;
 	}
 	.grp-title {
 		display: block;
@@ -118,5 +139,18 @@
 		color: var(--muted);
 		font-weight: 600;
 		margin-bottom: 4px;
+	}
+	/* Desktop: balance the raw groups into two columns. */
+	@media (min-width: 880px) {
+		.cols {
+			column-count: 2;
+			column-gap: 32px;
+		}
+		.cols .grp {
+			border-top: none;
+		}
+		.cols .grp + .grp {
+			margin-top: 14px;
+		}
 	}
 </style>

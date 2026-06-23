@@ -31,10 +31,6 @@
 	const bandWord = $derived(
 		({ none: 'New', low: 'Building', medium: 'Established', high: 'Strong' } as const)[band]
 	);
-	const isMember = $derived(avatar ? avatar.is_member !== false : true);
-	const blacklisted = $derived(avatar?.blacklisted === true);
-	const coldStart = $derived(headline === 0 && isMember && !blacklisted);
-
 	const typeLabel = $derived(
 		profile?.avatarType
 			? { human: 'Human', group: 'Group', organization: 'Organization' }[profile.avatarType]
@@ -53,23 +49,23 @@
 	}
 </script>
 
-<div class="header">
-	<div class="identity">
+<div class="idh">
+	<div class="who">
 		<div class="avatar">
 			{#if profile}
 				<img src={profile.imageUrl} alt="" />
 			{:else}
-				<Skeleton width="56px" height="56px" radius="50%" />
+				<Skeleton width="44px" height="44px" radius="50%" />
 			{/if}
 		</div>
-		<div class="who">
+		<div class="meta">
 			{#if profile}
 				<div class="name-row">
 					<span class="name" title={profile.name}>{profile.name}</span>
 					{#if typeLabel}<span class="type">{typeLabel}</span>{/if}
 				</div>
 			{:else}
-				<Skeleton width="120px" height="18px" />
+				<Skeleton width="120px" height="17px" />
 			{/if}
 			<button class="addr" type="button" onclick={copyAddr} title="Copy address">
 				<span class="mono">{shortAddress(checksumAddress(address))}</span>
@@ -79,54 +75,39 @@
 	</div>
 
 	<div class="score-block">
-		<span class="score-label">Reputation score</span>
+		<span class="score-label">Rep score</span>
 		{#if loading || headline === null}
-			<Skeleton width="96px" height="56px" radius="14px" />
+			<Skeleton width="64px" height="34px" radius="10px" />
 		{:else}
-			<div class="score band-{band}">{headline}</div>
-			<span class="band-word band-{band}">{bandWord}</span>
+			<div class="score-row">
+				<span class="score band-{band}">{headline}</span>
+				<span class="band-word band-{band}">{bandWord}</span>
+			</div>
 		{/if}
 	</div>
 </div>
 
-{#if blacklisted}
-	<div class="banner err">This avatar is blacklisted in this group.</div>
-{:else if avatar && !isMember}
-	<div class="banner warn">Not a member of this group yet — limited data available.</div>
-{:else if coldStart}
-	<div class="banner info">
-		Just getting started. Reputation grows with trusted activity — a fresh avatar sits near zero,
-		which is completely normal.
-	</div>
-{:else if score?.isNegative}
-	<div class="banner info">
-		The underlying signed score is below zero, so the headline is shown as 0. See Advanced for the
-		raw value.
-	</div>
-{/if}
-
 <style>
-	.header {
+	.idh {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 16px;
+		gap: 14px;
 		background: var(--card);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-card);
 		box-shadow: var(--shadow-card);
-		padding: 18px;
-		margin-bottom: 14px;
+		padding: 12px 16px;
 	}
-	.identity {
+	.who {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		gap: 12px;
 		min-width: 0;
 	}
 	.avatar {
-		width: 56px;
-		height: 56px;
+		width: 44px;
+		height: 44px;
 		border-radius: 50%;
 		overflow: hidden;
 		flex-shrink: 0;
@@ -139,7 +120,7 @@
 		object-fit: cover;
 		display: block;
 	}
-	.who {
+	.meta {
 		min-width: 0;
 	}
 	.name-row {
@@ -149,13 +130,13 @@
 		min-width: 0;
 	}
 	.name {
-		font-size: 17px;
+		font-size: 16px;
 		font-weight: 700;
 		color: var(--ink);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		max-width: 150px;
+		max-width: 180px;
 	}
 	.type {
 		flex-shrink: 0;
@@ -172,7 +153,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		margin-top: 5px;
+		margin-top: 3px;
 		background: transparent;
 		border: none;
 		padding: 0;
@@ -201,19 +182,22 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: var(--muted);
-		margin-bottom: 2px;
+	}
+	.score-row {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
 	}
 	.score {
-		font-size: 46px;
+		font-size: 32px;
 		font-weight: 700;
-		line-height: 1;
+		line-height: 1.05;
 		letter-spacing: -0.02em;
 		font-variant-numeric: tabular-nums;
 	}
 	.band-word {
 		font-size: 11px;
 		font-weight: 600;
-		margin-top: 4px;
 	}
 	.band-none {
 		color: var(--muted);
@@ -225,25 +209,6 @@
 		color: var(--accent-mid);
 	}
 	.band-high {
-		color: var(--accent);
-	}
-	.banner {
-		border-radius: 14px;
-		padding: 11px 14px;
-		font-size: 13px;
-		line-height: 1.45;
-		margin-bottom: 14px;
-	}
-	.banner.err {
-		background: var(--error-bg);
-		color: var(--error-ink);
-	}
-	.banner.warn {
-		background: var(--warn-bg);
-		color: var(--warn-ink);
-	}
-	.banner.info {
-		background: var(--accent-soft);
 		color: var(--accent);
 	}
 </style>

@@ -68,6 +68,7 @@
 	const momentumPts = $derived(score.gamma * boost.B_delta);
 </script>
 
+<div class="bd-cols">
 <div class="block">
 	<h3>Behaviour <span class="agg">s<sub>b</sub> = {fmtPct01(bd.sB)}</span></h3>
 	<p class="lead">Your conduct in the network, weighted into a single behaviour score.</p>
@@ -125,6 +126,7 @@
 		<p class="inactive">Network boost is {stages.network.reason.toLowerCase()}</p>
 	{/if}
 </div>
+</div>
 
 <div class="block">
 	<h3>Composition</h3>
@@ -140,6 +142,19 @@
 	.block:first-child {
 		padding-top: 2px;
 		border-top: none;
+	}
+	/* Desktop: Behaviour and Boosts sit side by side. */
+	@media (min-width: 880px) {
+		.bd-cols {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0 32px;
+			align-items: start;
+		}
+		.bd-cols > .block {
+			border-top: none;
+			padding-top: 2px;
+		}
 	}
 	h3 {
 		display: flex;

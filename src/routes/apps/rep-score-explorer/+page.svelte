@@ -41,6 +41,8 @@
 	} from '$lib/repscore';
 
 	import IdentityHeader from './components/IdentityHeader.svelte';
+	import TabBar from './components/TabBar.svelte';
+	import StatusBanner from './components/StatusBanner.svelte';
 	import AddressSearch from './components/AddressSearch.svelte';
 	import SectionCard from './components/SectionCard.svelte';
 	import ScoreSparkChart from './components/ScoreSparkChart.svelte';
@@ -68,6 +70,15 @@
 	});
 	let groupInfo = $state<GroupInfo | null>(null);
 	let timeframe = $state<Timeframe>('7d');
+
+	type TabKey = 'overview' | 'breakdown' | 'trust' | 'advanced';
+	let tab = $state<TabKey>('overview');
+	const TABS = [
+		{ key: 'overview', label: 'Overview' },
+		{ key: 'breakdown', label: 'Breakdown' },
+		{ key: 'trust', label: 'Trust' },
+		{ key: 'advanced', label: 'Advanced' }
+	];
 
 	// ─── Derived view-models ────────────────────────────────────
 	const cfg = $derived(cfgCell.kind === 'ok' ? cfgCell.value : null);
@@ -119,6 +130,7 @@
 
 	async function loadForTarget(addr: Address) {
 		target = addr;
+		tab = 'overview';
 		activeController?.abort();
 		const controller = new AbortController();
 		activeController = controller;
@@ -260,13 +272,20 @@
 		{/if}
 	{:else}
 		<!-- Avatar view -->
-		<IdentityHeader
-			address={target}
-			{avatar}
-			{profile}
-			score={derivedScore}
-			loading={avatarCell.kind === 'loading'}
-		/>
+		<div class="sticky-zone">
+			<IdentityHeader
+				address={target}
+				{avatar}
+				{profile}
+				score={derivedScore}
+				loading={avatarCell.kind === 'loading'}
+			/>
+			{#if avatar && comp && isMember}
+				<TabBar tabs={TABS} active={tab} onselect={(k) => (tab = k as TabKey)} />
+			{/if}
+		</div>
+
+		<StatusBanner {avatar} score={derivedScore} />
 
 		{#if avatarCell.kind === 'error' && !notFound}
 			<div class="notice err">
@@ -288,54 +307,66 @@
 				</p>
 			</SectionCard>
 		{:else if avatar && comp}
-			<SectionCard title="Reputation over time">
-				<ScoreSparkChart
-					points={chartView}
-					{timeframe}
-					ontimeframe={(tf) => (timeframe = tf)}
-					summary={chartSummary}
-					loading={historyCell.kind === 'loading' || historyCell.kind === 'idle'}
-				/>
-			</SectionCard>
-
-			<SectionCard title="What changed" subtitle="Recent score movements and why">
-				<EventTimeline
-					events={timeline}
-					loading={historyCell.kind === 'loading' || historyCell.kind === 'idle'}
-				/>
-			</SectionCard>
-
-			{#if ready && derivedScore && cfg && stages}
-				<SectionCard title="Why this score" subtitle="Behaviour, boosts and how they combine">
-					<BreakdownPanel {avatar} score={derivedScore} {cfg} {stages} {gateActive} />
-				</SectionCard>
-			{/if}
-
-			<SectionCard title="Trust neighbourhood">
-				{#if neighboursCell.kind === 'ok'}
-					<TrustNeighbourhood
-						neighbours={neighboursCell.value.data.neighbours}
-						profiles={neighboursCell.value.profiles}
-						total={neighboursCell.value.data.total_neighbours}
-					/>
-				{:else if neighboursCell.kind === 'error'}
-					<p class="plain">Couldn't load trust connections.</p>
-				{:else}
-					<TrustNeighbourhood neighbours={[]} profiles={new Map()} total={0} loading />
+			<div class="tab-panel">
+				{#if tab === 'overview'}
+					<SectionCard title="Reputation over time">
+						<ScoreSparkChart
+							points={chartView}
+							{timeframe}
+							ontimeframe={(tf) => (timeframe = tf)}
+							summary={chartSummary}
+							loading={historyCell.kind === 'loading' || historyCell.kind === 'idle'}
+						/>
+					</SectionCard>
+					<div class="grid-2">
+						<SectionCard title="What changed" subtitle="Recent score movements and why">
+							<EventTimeline
+								events={timeline}
+								loading={historyCell.kind === 'loading' || historyCell.kind === 'idle'}
+							/>
+						</SectionCard>
+						<SectionCard title="Economic snapshot">
+							<EconomicSnapshot
+								gate={comp.gate.live}
+								ema={comp.behaviour.ema_primitives}
+								{gateActive}
+							/>
+						</SectionCard>
+					</div>
+				{:else if tab === 'breakdown'}
+					{#if ready && derivedScore && cfg && stages}
+						<SectionCard title="Why this score" subtitle="Behaviour, boosts and how they combine">
+							<BreakdownPanel {avatar} score={derivedScore} {cfg} {stages} {gateActive} />
+						</SectionCard>
+					{:else}
+						<SectionCard title="Why this score">
+							<p class="plain">Scoring configuration is unavailable right now.</p>
+						</SectionCard>
+					{/if}
+				{:else if tab === 'trust'}
+					<SectionCard title="Trust neighbourhood">
+						{#if neighboursCell.kind === 'ok'}
+							<TrustNeighbourhood
+								neighbours={neighboursCell.value.data.neighbours}
+								profiles={neighboursCell.value.profiles}
+								total={neighboursCell.value.data.total_neighbours}
+							/>
+						{:else if neighboursCell.kind === 'error'}
+							<p class="plain">Couldn't load trust connections.</p>
+						{:else}
+							<TrustNeighbourhood neighbours={[]} profiles={new Map()} total={0} loading />
+						{/if}
+					</SectionCard>
+				{:else if tab === 'advanced'}
+					{#if ready && derivedScore && cfg}
+						<AdvancedDisclosure {avatar} score={derivedScore} {cfg} inline />
+					{:else}
+						<SectionCard title="Advanced">
+							<p class="plain">Scoring configuration is unavailable right now.</p>
+						</SectionCard>
+					{/if}
 				{/if}
-			</SectionCard>
-
-			<SectionCard title="Economic snapshot">
-				<EconomicSnapshot
-					gate={comp.gate.live}
-					ema={comp.behaviour.ema_primitives}
-					{gateActive}
-				/>
-			</SectionCard>
-
-			{#if ready && derivedScore && cfg}
-				<AdvancedDisclosure {avatar} score={derivedScore} {cfg} />
-			{/if}
+			</div>
 		{/if}
 	{/if}
 
@@ -349,11 +380,66 @@
 </div>
 
 <style>
+	/*
+	 * The global reset sets `html, body { overflow-x: hidden }`, which forces
+	 * overflow-y to `auto` and makes <body> a scroll container that isn't the one
+	 * actually scrolling — that breaks `position: sticky`. `clip` prevents the
+	 * horizontal overflow without creating a scroll container, so sticky works.
+	 * This mini app renders in its own iframe document, so the override is local.
+	 */
+	:global(:root) {
+		overflow-x: clip;
+	}
+	:global(html > body) {
+		overflow-x: clip;
+	}
+
 	.app {
 		max-width: 560px;
 		margin: 0 auto;
 		padding: 18px 16px 40px;
 		min-height: 100vh;
+	}
+	/* Use the screen on desktop (mostly an internal desktop tool). */
+	@media (min-width: 880px) {
+		.app {
+			max-width: 1080px;
+			padding: 22px 24px 56px;
+		}
+	}
+	/* Sticky identity + tabs so the who/score/nav never scroll away. */
+	.sticky-zone {
+		position: sticky;
+		top: 0;
+		z-index: 20;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin: 0 -16px 14px;
+		padding: 10px 16px;
+		background: rgba(250, 245, 241, 0.86);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+	}
+	@media (min-width: 880px) {
+		.sticky-zone {
+			margin: 0 -24px 16px;
+			padding: 12px 24px;
+		}
+	}
+	.tab-panel {
+		min-height: 40vh;
+	}
+	.grid-2 {
+		display: grid;
+		grid-template-columns: 1fr;
+		column-gap: 14px;
+	}
+	@media (min-width: 880px) {
+		.grid-2 {
+			grid-template-columns: 1fr 1fr;
+			align-items: start;
+		}
 	}
 	.app-head {
 		margin-bottom: 16px;

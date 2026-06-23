@@ -138,6 +138,11 @@
 			grid-template-columns: 1fr 1fr;
 		}
 	}
+	@media (min-width: 880px) {
+		.grid {
+			grid-template-columns: 1fr 1fr 1fr;
+		}
+	}
 	.nb {
 		display: flex;
 		align-items: center;
