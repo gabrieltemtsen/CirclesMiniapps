@@ -314,7 +314,13 @@
 				</p>
 			</SectionCard>
 		{:else if avatar && comp}
-			<div class="tab-panel">
+			<div
+				class="tab-panel"
+				role="tabpanel"
+				id="rs-tabpanel"
+				aria-labelledby={`rs-tab-${tab}`}
+				tabindex="0"
+			>
 				{#if tab === 'overview'}
 					<SectionCard title="Reputation over time">
 						<ScoreSparkChart

@@ -12,9 +12,13 @@ describe('resolveEnv', () => {
     expect(e.debug).toBe(false);
   });
 
-  it('enables debug only on explicit "true"', () => {
-    expect(resolveEnv({ VITE_REP_SCORE_DEBUG: 'true' }).debug).toBe(true);
-    expect(resolveEnv({ VITE_REP_SCORE_DEBUG: 'false' }).debug).toBe(false);
+  it('enables debug only on truthy values; 0/no/off/empty stay off', () => {
+    for (const v of ['true', '1', 'yes', 'on', 'TRUE']) {
+      expect(resolveEnv({ VITE_REP_SCORE_DEBUG: v }).debug).toBe(true);
+    }
+    for (const v of ['false', '0', 'no', 'off', '', 'anything']) {
+      expect(resolveEnv({ VITE_REP_SCORE_DEBUG: v }).debug).toBe(false);
+    }
     expect(resolveEnv({}).debug).toBe(false);
   });
 
@@ -28,8 +32,10 @@ describe('resolveEnv', () => {
     expect(e.rpcBase).toBe(STAGING.rpc);
   });
 
-  it('disables search only on explicit "false"', () => {
-    expect(resolveEnv({ VITE_REP_SCORE_SEARCH_ENABLED: 'false' }).searchEnabled).toBe(false);
+  it('disables search on false/0/off; default true otherwise', () => {
+    for (const v of ['false', '0', 'off', 'no']) {
+      expect(resolveEnv({ VITE_REP_SCORE_SEARCH_ENABLED: v }).searchEnabled).toBe(false);
+    }
     expect(resolveEnv({ VITE_REP_SCORE_SEARCH_ENABLED: 'true' }).searchEnabled).toBe(true);
     expect(resolveEnv({ VITE_REP_SCORE_SEARCH_ENABLED: 'anything' }).searchEnabled).toBe(true);
   });

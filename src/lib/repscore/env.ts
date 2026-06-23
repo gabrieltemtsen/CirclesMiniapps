@@ -36,12 +36,20 @@ function pick(bag: EnvBag, key: string): string | undefined {
 	return typeof v === 'string' && v.length > 0 ? v : undefined;
 }
 
-/** A flag is "off" only when explicitly set to the string "false" (default true). */
+/**
+ * Parse a boolean flag symmetrically: true/1/yes/on → true, false/0/no/off →
+ * false (any case), and an empty or unrecognised value falls back to `fallback`.
+ * This keeps DEBUG (default false) off unless explicitly enabled — e.g.
+ * `VITE_REP_SCORE_DEBUG=0` does NOT turn it on.
+ */
 function flag(bag: EnvBag, key: string, fallback: boolean): boolean {
 	const v = bag?.[key];
 	if (v === undefined) return fallback;
 	if (typeof v === 'boolean') return v;
-	return String(v).toLowerCase() !== 'false';
+	const s = String(v).trim().toLowerCase();
+	if (s === 'true' || s === '1' || s === 'yes' || s === 'on') return true;
+	if (s === 'false' || s === '0' || s === 'no' || s === 'off') return false;
+	return fallback;
 }
 
 /**
