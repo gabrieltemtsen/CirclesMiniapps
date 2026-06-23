@@ -74,7 +74,7 @@
 		{#each visible as n (n.address)}
 			{@const p = prof(n.address)}
 			<div class="nb">
-				<img class="nb-img" src={p?.imageUrl} alt="" />
+				<img class="nb-img" src={p?.imageUrl} alt="" loading="lazy" decoding="async" />
 				<div class="nb-body">
 					<span class="nb-name" title={p?.name}>{p?.name ?? shortAddress(n.address)}</span>
 					<span class="nb-addr">{shortAddress(n.address)}</span>
