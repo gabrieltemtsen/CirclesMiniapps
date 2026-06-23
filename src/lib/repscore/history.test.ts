@@ -71,6 +71,12 @@ describe('downsample', () => {
     const pts = pointsEvery(Date.parse('2026-06-23T12:00:00Z'), 5, HOUR);
     expect(downsample(pts, 120)).toBe(pts);
   });
+  it('respects tiny maxPoints (<= 2)', () => {
+    const pts = pointsEvery(Date.parse('2026-06-23T12:00:00Z'), 10, HOUR);
+    expect(downsample(pts, 2)).toEqual([pts[0], pts[pts.length - 1]]);
+    expect(downsample(pts, 1)).toEqual([pts[pts.length - 1]]);
+    expect(downsample(pts, 0)).toEqual([]);
+  });
 });
 
 describe('summarize', () => {

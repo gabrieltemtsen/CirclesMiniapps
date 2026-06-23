@@ -74,7 +74,9 @@ export function deriveTimeline(
 ): TimelineEvent[] {
 	const minDelta = opts?.minDelta ?? 1;
 	const gamma = cfg?.defaults?.boost?.delta?.gamma ?? 0;
-	const sorted = [...items].sort((a, b) => Date.parse(a.snapshot_at) - Date.parse(b.snapshot_at));
+	const sorted = items
+		.filter((it) => Number.isFinite(Date.parse(it.snapshot_at)))
+		.sort((a, b) => Date.parse(a.snapshot_at) - Date.parse(b.snapshot_at));
 
 	const events: TimelineEvent[] = [];
 	for (let i = 1; i < sorted.length; i++) {
@@ -92,7 +94,7 @@ export function deriveTimeline(
 				toLive,
 				delta,
 				cause: 'membership',
-				headline: causeCopy('membership', delta)
+				headline: cur.is_member ? 'Joined the group' : 'Left the group'
 			});
 			continue;
 		}

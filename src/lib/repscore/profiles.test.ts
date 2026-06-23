@@ -8,6 +8,9 @@ describe('resolveProfile — name precedence', () => {
   it('prefers name', () => {
     expect(resolveProfile(A, { name: 'gerva7', registeredName: 'reg' }).name).toBe('gerva7');
   });
+  it('treats whitespace-only name as empty and uses registeredName', () => {
+    expect(resolveProfile(A, { name: '   ', registeredName: 'reg' }).name).toBe('reg');
+  });
   it('falls back to registeredName', () => {
     expect(resolveProfile(A, { registeredName: 'reg' }).name).toBe('reg');
   });
@@ -24,6 +27,11 @@ describe('resolveProfile — image precedence & fallback', () => {
   });
   it('falls back to previewImageUrl', () => {
     const p = resolveProfile(A, { previewImageUrl: 'https://x/p.png' });
+    expect(p.imageUrl).toBe('https://x/p.png');
+    expect(p.hasRealImage).toBe(true);
+  });
+  it('treats whitespace-only imageUrl as empty and uses previewImageUrl', () => {
+    const p = resolveProfile(A, { imageUrl: '   ', previewImageUrl: 'https://x/p.png' });
     expect(p.imageUrl).toBe('https://x/p.png');
     expect(p.hasRealImage).toBe(true);
   });

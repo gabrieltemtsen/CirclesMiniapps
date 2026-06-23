@@ -137,7 +137,9 @@ export interface BehaviourBreakdown {
 
 /** Per-metric weighted contributions to s_b, weights read from config. */
 export function behaviourBreakdown(b: BehaviourComponent, cfg: RepConfig): BehaviourBreakdown {
-	const w = cfg?.defaults?.behaviour?.weights ?? { R: 0, Q: 0, I: 0 };
+	const wr = cfg?.defaults?.behaviour?.weights;
+	const wOf = (v: number | undefined) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+	const w = { R: wOf(wr?.R), Q: wOf(wr?.Q), I: wOf(wr?.I) };
 	const rContribution = w.R * b.R_bar;
 	const qContribution = w.Q * b.Q_bar;
 	const iContribution = w.I * b.I_bar;

@@ -22,7 +22,7 @@
 	<p class="empty">No score changes recorded yet.</p>
 {:else}
 	<div class="list">
-		{#each shown as ev (ev.at)}
+		{#each shown as ev, i (`${ev.at}:${i}`)}
 			<div class="ev">
 				<span
 					class="chip"

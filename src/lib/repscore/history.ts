@@ -44,7 +44,10 @@ export function filterByTimeframe(points: ChartPoint[], tf: Timeframe, now: numb
 
 /** Cap rendered points by even stride to keep the SVG light; always keep first + last. */
 export function downsample(points: ChartPoint[], maxPoints: number): ChartPoint[] {
-	if (maxPoints <= 2 || points.length <= maxPoints) return points;
+	if (points.length === 0) return points;
+	if (maxPoints <= 0) return [];
+	if (maxPoints === 1) return [points[points.length - 1]];
+	if (points.length <= maxPoints) return points;
 	const out: ChartPoint[] = [];
 	const stride = (points.length - 1) / (maxPoints - 1);
 	for (let i = 0; i < maxPoints; i++) {

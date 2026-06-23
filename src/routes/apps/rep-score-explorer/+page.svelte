@@ -222,7 +222,10 @@
 				hostAddress = null;
 			}
 		});
-		return () => unsub();
+		return () => {
+			activeController?.abort();
+			unsub();
+		};
 	});
 </script>
 

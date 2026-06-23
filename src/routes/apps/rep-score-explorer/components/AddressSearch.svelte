@@ -20,6 +20,7 @@
 	const showError = $derived(touched && input.trim().length > 0 && !valid);
 
 	function submit() {
+		if (busy) return;
 		touched = true;
 		const addr = normalizeAddress(input);
 		if (!addr) return;

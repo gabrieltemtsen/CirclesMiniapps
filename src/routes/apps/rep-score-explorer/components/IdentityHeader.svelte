@@ -76,8 +76,13 @@
 
 	<div class="score-block">
 		<span class="score-label">Rep score</span>
-		{#if loading || headline === null}
+		{#if loading}
 			<Skeleton width="64px" height="34px" radius="10px" />
+		{:else if headline === null}
+			<div class="score-row">
+				<span class="score band-none">—</span>
+				<span class="band-word band-none">Unavailable</span>
+			</div>
 		{:else}
 			<div class="score-row">
 				<span class="score band-{band}">{headline}</span>

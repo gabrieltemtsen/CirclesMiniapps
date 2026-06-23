@@ -42,6 +42,15 @@ describe('deriveTimeline — attribution', () => {
     expect(ev[0].headline).toBe('Joined the group');
   });
 
+  it('labels join/leave from membership state, not score delta', () => {
+    // a join whose score fell — must still read "Joined the group"
+    const items = [
+      makeHistoryItem('2026-06-21T00:00:00Z', 10, { is_member: false }),
+      makeHistoryItem('2026-06-22T00:00:00Z', 5, { is_member: true })
+    ];
+    expect(deriveTimeline(items, cfg)[0].headline).toBe('Joined the group');
+  });
+
   it('marks near-ties as mixed', () => {
     const items = [
       makeHistoryItem('2026-06-21T00:00:00Z', 100, { behaviour: 50, bStatic: 75 }),

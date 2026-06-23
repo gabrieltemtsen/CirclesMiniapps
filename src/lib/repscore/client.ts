@@ -107,7 +107,7 @@ export class RepScoreClient {
 			);
 			total = page.total ?? page.items.length;
 			if (!page.items.length) break;
-			all.push(...page.items);
+			all.push(...page.items.slice(0, maxItems - all.length));
 			offset += page.items.length;
 			if (page.items.length < HISTORY_PAGE_LIMIT) break;
 		}

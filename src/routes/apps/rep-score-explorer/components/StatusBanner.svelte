@@ -6,7 +6,7 @@
 	const isMember = $derived(avatar ? avatar.is_member !== false : true);
 	const blacklisted = $derived(avatar?.blacklisted === true);
 	const headline = $derived(score ? score.headline : avatar ? headlineScore(avatar) : null);
-	const coldStart = $derived(headline === 0 && isMember && !blacklisted);
+	const coldStart = $derived(headline === 0 && isMember && !blacklisted && !score?.isNegative);
 </script>
 
 {#if blacklisted}

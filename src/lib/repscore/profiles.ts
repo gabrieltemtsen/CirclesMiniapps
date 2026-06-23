@@ -28,8 +28,9 @@ function normalizeAvatarType(raw?: string): AvatarType | null {
 /** Pure: choose best name + image (with identicon fallback) from a raw profile. */
 export function resolveProfile(address: Address, raw: Profile | null): ResolvedProfile {
 	const addr = address.toLowerCase() as Address;
-	const name = (raw?.name || raw?.registeredName || '').trim();
-	const realImage = (raw?.imageUrl || raw?.previewImageUrl || '').trim();
+	// Trim each candidate before the fallback so whitespace-only values fall through.
+	const name = (raw?.name ?? '').trim() || (raw?.registeredName ?? '').trim();
+	const realImage = (raw?.imageUrl ?? '').trim() || (raw?.previewImageUrl ?? '').trim();
 	return {
 		address: addr,
 		name: name || shortAddress(addr),
