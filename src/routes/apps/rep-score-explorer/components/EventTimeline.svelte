@@ -34,6 +34,9 @@
 				</span>
 				<div class="body">
 					<span class="head">{ev.headline}</span>
+					{#if ev.detail}
+						<span class="detail">{ev.detail}</span>
+					{/if}
 					<span class="time">{fmtRelativeTime(new Date(ev.at).toISOString())}</span>
 				</div>
 			</div>
@@ -102,6 +105,12 @@
 		font-size: 13px;
 		color: var(--ink);
 		line-height: 1.35;
+	}
+	.detail {
+		font-size: 11.5px;
+		color: var(--muted);
+		line-height: 1.4;
+		margin-top: 1px;
 	}
 	.time {
 		font-size: 11px;

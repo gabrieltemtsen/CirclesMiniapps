@@ -130,12 +130,27 @@ export function nonMemberAvatar(addr = '0x000000000000000000000000000000000000de
 export function makeHistoryItem(
   snapshot_at: string,
   live: number,
-  parts?: { behaviour?: number; bStatic?: number; bLegacy?: number; bDelta?: number; liveness?: number; is_member?: boolean }
+  parts?: {
+    behaviour?: number;
+    bStatic?: number;
+    bLegacy?: number;
+    bDelta?: number;
+    liveness?: number;
+    is_member?: boolean;
+    rBar?: number;
+    qBar?: number;
+    iBar?: number;
+    staticSources?: Record<string, number>;
+  }
 ): HistoryItem {
   const c = gervaComponents();
   c.boost.B_static = parts?.bStatic ?? c.boost.B_static;
   c.boost.B_legacy = parts?.bLegacy ?? c.boost.B_legacy;
   c.boost.B_delta = parts?.bDelta ?? c.boost.B_delta;
+  if (parts?.rBar !== undefined) c.behaviour.R_bar = parts.rBar;
+  if (parts?.qBar !== undefined) c.behaviour.Q_bar = parts.qBar;
+  if (parts?.iBar !== undefined) c.behaviour.I_bar = parts.iBar;
+  if (parts?.staticSources) c.boost.b_static_sources = parts.staticSources;
   return {
     snapshot_at,
     reputation_score: live,

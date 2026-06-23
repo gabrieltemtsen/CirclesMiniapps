@@ -82,6 +82,52 @@ describe('deriveTimeline — noise & ordering', () => {
   });
 });
 
+describe('deriveTimeline — plain-language detail', () => {
+  it('names the dominant behaviour sub-driver in headline + detail', () => {
+    // retention (R) drops; Q/I unchanged → "weaker retention"
+    const items = [
+      makeHistoryItem('2026-06-21T00:00:00Z', 100, { behaviour: 70, rBar: 1.0 }),
+      makeHistoryItem('2026-06-22T00:00:00Z', 95, { behaviour: 60, rBar: 0.8 })
+    ];
+    const ev = deriveTimeline(items, cfg);
+    expect(ev[0].cause).toBe('behaviour');
+    expect(ev[0].headline).toContain('weaker retention');
+    expect(ev[0].detail).toMatch(/hold value/i);
+  });
+
+  it('names the static boost source that was added', () => {
+    const items = [
+      makeHistoryItem('2026-06-21T00:00:00Z', 100, { bStatic: 0, staticSources: {} }),
+      makeHistoryItem('2026-06-22T00:00:00Z', 125, { bStatic: 75, staticSources: { pay_kyc: 75 } })
+    ];
+    const ev = deriveTimeline(items, cfg);
+    expect(ev[0].cause).toBe('boost-static');
+    expect(ev[0].headline).toContain('Verified human (KYC)');
+    expect(ev[0].headline).toContain('was added');
+  });
+
+  it('explains momentum with the gamma multiplier', () => {
+    const items = [
+      makeHistoryItem('2026-06-21T00:00:00Z', 100, { behaviour: 50, bStatic: 75, bDelta: 0.1 }),
+      makeHistoryItem('2026-06-22T00:00:00Z', 105, { behaviour: 50, bStatic: 75, bDelta: 0.2 })
+    ];
+    const ev = deriveTimeline(items, cfg);
+    expect(ev[0].cause).toBe('momentum');
+    expect(ev[0].detail).toContain('×100');
+  });
+
+  it('always attaches a non-empty detail line', () => {
+    const items = [
+      makeHistoryItem('2026-06-20T00:00:00Z', 100, { behaviour: 40 }),
+      makeHistoryItem('2026-06-21T00:00:00Z', 120, { behaviour: 60, bStatic: 90 }),
+      makeHistoryItem('2026-06-22T00:00:00Z', 50, { is_member: false })
+    ];
+    for (const e of deriveTimeline(items, cfg)) {
+      expect(e.detail && e.detail.length).toBeTruthy();
+    }
+  });
+});
+
 describe('causeCopy', () => {
   it('uses direction-aware wording', () => {
     expect(causeCopy('behaviour', 4)).toContain('rose');
