@@ -486,6 +486,10 @@
 		line-height: 1.45;
 	}
 	.search-area {
+		/* Own stacking context above the sticky identity/tabs zone (z-index: 20),
+		   so the avatar-search dropdown overlays it instead of hiding behind. */
+		position: relative;
+		z-index: 30;
 		margin-bottom: 16px;
 	}
 	.landing {
