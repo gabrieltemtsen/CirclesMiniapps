@@ -11,7 +11,7 @@
  */
 
 import { identiconDataUri } from './identicon';
-import { shortAddress } from './format';
+import { shortAddress, isValidAddress } from './format';
 import type { Address, AvatarType, Profile, ResolvedProfile } from './types';
 import type { RepEnv } from './env';
 
@@ -58,6 +58,68 @@ export async function fetchFocalProfile(
 	} catch {
 		return resolveProfile(addr, null);
 	}
+}
+
+/** Derive the profiles-service search URL from the single-profile base. */
+function searchEndpoint(profileBase: string): string {
+	// profileBase is `${profilesRoot}/profile`; search lives at `${profilesRoot}/search`.
+	const root = profileBase.replace(/\/profile\/?$/, '');
+	return `${root}/search`;
+}
+
+/**
+ * Look up avatars by name via the profiles service:
+ *   GET {profilesRoot}/search?name=<query>&limit=<n>
+ * Case-insensitive substring match. Returns resolved profiles (identicon
+ * fallback applied, invalid/duplicate addresses dropped). Never throws —
+ * returns [] on error, empty input, or no matches.
+ */
+export async function searchProfiles(
+	env: RepEnv,
+	query: string,
+	fetchImpl: typeof fetch = fetch,
+	limit = 8
+): Promise<ResolvedProfile[]> {
+	const q = query.trim();
+	if (q.length === 0) return [];
+
+	let rows: Profile[] = [];
+	try {
+		const url = `${searchEndpoint(env.profileBase)}?name=${encodeURIComponent(q)}&limit=${limit}`;
+		const res = await fetchImpl(url, { headers: { Accept: 'application/json' } });
+		if (!res.ok) return [];
+		const json = await res.json();
+		rows = Array.isArray(json) ? json : [];
+	} catch {
+		return [];
+	}
+
+	// Keep valid, unique addresses in match order.
+	const picked: { row: Profile; address: Address }[] = [];
+	const seen = new Set<string>();
+	for (const row of rows) {
+		const a = (row?.address ?? '').toLowerCase();
+		if (!a || seen.has(a) || !isValidAddress(a)) continue;
+		seen.add(a);
+		picked.push({ row, address: a as Address });
+	}
+	if (picked.length === 0) return [];
+
+	// The search endpoint omits avatar images; enrich with a single batch RPC
+	// call that returns previewImageUrl (the same source neighbour avatars use).
+	const images = await fetchProfilesBatch(
+		env,
+		picked.map((p) => p.address),
+		fetchImpl
+	);
+	return picked.map(({ row, address }) => {
+		const enriched = images.get(address);
+		const raw: Profile = {
+			...row,
+			previewImageUrl: enriched?.hasRealImage ? enriched.imageUrl : row.previewImageUrl
+		};
+		return resolveProfile(address, raw);
+	});
 }
 
 /**

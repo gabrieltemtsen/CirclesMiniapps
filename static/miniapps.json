@@ -284,6 +284,7 @@
     "url": "https://rep-score-explorer.vercel.app/",
     "description": "Explore any Circles avatar's reputation score, its history over time, trust neighbourhood and economic snapshot — in plain language. Read-only.",
     "tags": ["admin", "reputation", "analytics", "tools"],
-    "category": "admin"
+    "category": "admin",
+    "isHidden": true
   }
 ]

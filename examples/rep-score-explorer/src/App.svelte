@@ -18,6 +18,7 @@
 		resolveEnv,
 		getRepScoreClient,
 		fetchFocalProfile,
+		searchProfiles,
 		fetchProfilesBatch,
 		deriveScore,
 		deriveStages,
@@ -205,6 +206,7 @@
 	function onSearch(addr: Address) {
 		loadForTarget(addr);
 	}
+	const doSearch = (q: string) => searchProfiles(env, q);
 	function viewMine() {
 		if (hostAddress) loadForTarget(hostAddress);
 	}
@@ -248,6 +250,7 @@
 		<div class="search-area">
 			<AddressSearch
 				onsubmit={onSearch}
+					onsearch={doSearch}
 				busy={avatarCell.kind === 'loading'}
 				canUseMine={!!hostAddress && target !== hostAddress}
 				onmine={viewMine}
@@ -483,6 +486,10 @@
 		line-height: 1.45;
 	}
 	.search-area {
+		/* Own stacking context above the sticky identity/tabs zone (z-index: 20),
+		   so the avatar-search dropdown overlays it instead of hiding behind. */
+		position: relative;
+		z-index: 30;
 		margin-bottom: 16px;
 	}
 	.landing {
