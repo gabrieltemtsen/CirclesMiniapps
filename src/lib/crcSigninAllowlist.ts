@@ -37,7 +37,10 @@ export const ALLOWED_EMBEDDER_ORIGINS: string[] = [
 
 	// --- Local development (remove for a locked-down production build) ---
 	'http://localhost',
-	'http://127.0.0.1'
+	'http://127.0.0.1',
+
+	'https://recipe-circles.vercel.app',
+	'http://card-circles.vercel.app'
 ];
 
 /**
